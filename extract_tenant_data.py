@@ -1,19 +1,19 @@
+import streamlit as st
 import openai
-import fitz  
+import fitz  # PyMuPDF
 import io
 from PIL import Image
 import json
 import os
 import base64
 import pandas as pd
-from dotenv import load_dotenv
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Use Streamlit secrets (not dotenv)
+openai.api_key = st.secrets["openai"]["api_key"]
 
-EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
+EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 
-
+# -------------------- PDF to Image --------------------
 def extract_images_from_pdf(pdf_path):
     """Extract all pages from PDF as PIL images."""
     images = []
@@ -24,7 +24,7 @@ def extract_images_from_pdf(pdf_path):
         images.append(img)
     return images
 
-
+# -------------------- Vision GPT Call --------------------
 def call_gpt_vision_api(images):
     """Send the image(s) to GPT-4o for structured data extraction."""
     image_parts = []
@@ -43,20 +43,21 @@ def call_gpt_vision_api(images):
         {
             "role": "system",
             "content": (
-                " You are a document parser. Extract structured data from tenant application forms and ID documents."
-                " Return a JSON object with: Property Address, Move-in Date, FullName, DOB, SSN, Email, PhoneNumber, "
-                " Applicant's Current Address, Landlord or Property Manager's Name, Phone:Day:"
-                " DriverLicenseNumber, IDType, IDIssuer, Nationality, FormSource, ApplicationDate."
-                " Under C.Represenation and Marketing, extract Name, Company, E-mail, Phone Number"
-                " Under Employment and Other Income:, Applicant's Current Employer, Employment Verification Contact:, Phone, Employed to, Employed from,Gross Monthly Income, Position" 
-                " Under F. Vehicle Information: Type, Year, Make, Model, Monthly Payment"
-                " If a field is not found, return null. The result must be JSON and match the field names exactly."
-            ),
+                "You are a document parser. Extract structured data from tenant application forms and ID documents. "
+                "Return a JSON object with: Property Address, Move-in Date, FullName, DOB, SSN, Email, PhoneNumber, "
+                "Applicant's Current Address, Landlord or Property Manager's Name, Phone:Day:, "
+                "DriverLicenseNumber, IDType, IDIssuer, Nationality, FormSource, ApplicationDate. "
+                "Under C.Representation and Marketing: Name, Company, E-mail, Phone Number. "
+                "Under Employment and Other Income: Applicant's Current Employer, Employment Verification Contact:, "
+                "Phone, Employed to, Employed from, Gross Monthly Income, Position. "
+                "Under F. Vehicle Information: Type, Year, Make, Model, Monthly Payment. "
+                "Return null for missing fields. Output must be a valid JSON object."
+            )
         },
         {
             "role": "user",
             "content": image_parts
-        },
+        }
     ]
 
     try:
@@ -66,18 +67,18 @@ def call_gpt_vision_api(images):
             temperature=0,
             max_tokens=1000
         )
-        content = response.choices[0].message.content
+        content = response.choices[0].message.content.strip()
         return json.loads(content) if content.startswith('{') else {"GPT_Output": content}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"API call failed: {str(e)}"}
 
-
+# -------------------- Wrapper --------------------
 def process_pdf(pdf_path):
     images = extract_images_from_pdf(pdf_path)
     extracted_data = call_gpt_vision_api(images)
     return extracted_data, {}
 
-
+# -------------------- Output Utilities --------------------
 def save_to_excel_appended(data_dict):
     """Append a new row to the Excel file without overwriting existing data."""
     new_df = pd.DataFrame([data_dict])
@@ -88,14 +89,11 @@ def save_to_excel_appended(data_dict):
         combined_df = new_df
     combined_df.to_excel(EXTRACTED_DATA_PATH, index=False)
 
-
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
-    text_data = ""
-    for page in doc:
-        text_data += page.get_text()
-    return text_data
+    return "\n".join([page.get_text() for page in doc])
 
+# -------------------- Flatten Output --------------------
 def flatten_extracted_data(data):
     """Flattens nested tenant data into a single-level dictionary for Excel."""
     flat = {
@@ -108,11 +106,13 @@ def flatten_extracted_data(data):
         "PhoneNumber": data.get("PhoneNumber"),
         "Applicant's Current Address": data.get("Applicant's Current Address"),
         "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name"),
-        "Phone:Day:": data.get("Phone:Day"),
+        "Phone:Day:": data.get("Phone:Day:"),
         "DriverLicenseNumber": data.get("DriverLicenseNumber"),
         "IDType": data.get("IDType"),
         "IDIssuer": data.get("IDIssuer"),
         "Nationality": data.get("Nationality"),
+        "FormSource": data.get("FormSource"),
+        "ApplicationDate": data.get("ApplicationDate"),
 
         # Employment Info
         "Applicant's Current Employer": data.get("Employment and Other Income:", {}).get("Applicant's Current Employer"),
@@ -132,21 +132,22 @@ def flatten_extracted_data(data):
     }
     return flat
 
+# -------------------- Clean GPT Output --------------------
 def parse_gpt_output(form_data):
     """
-    Parses the GPT-4 JSON string from the form_data['GPT_Output'] key and returns a Python dict.
-    Strips leading/trailing markdown backticks and safely loads JSON.
+    Parses GPT-4 JSON string and strips markdown formatting.
     """
     raw = form_data.get("GPT_Output", "").strip()
 
-    # Remove markdown formatting if present
+    # Remove triple-backtick wrappers (markdown format)
     if raw.startswith("```json"):
         raw = raw[7:]
+    elif raw.startswith("```"):
+        raw = raw[3:]
     if raw.endswith("```"):
         raw = raw[:-3]
 
     try:
-        parsed = json.loads(raw)
-        return parsed
+        return json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid GPT JSON string: {e}")
