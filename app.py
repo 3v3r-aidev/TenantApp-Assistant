@@ -13,8 +13,6 @@ from write_template_holder import append_to_template_holder, write_multiple_appl
 # --- Page Config MUST be first ---
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
 
-st.markdown("✅ App is starting...")
-
 # Function to enconde to base64 the app logo
 def get_base64_image(path):
     with open(path, "rb") as f:
@@ -55,8 +53,6 @@ st.markdown(f"""
         <span>Icon by Iconic Panda</span>
     </div>
 """, unsafe_allow_html=True)
-
-st.write("Logo loaded")
 
 def generate_filename_from_address(address: str) -> str:
     """Return '<first_two_words>_<yyyymmdd>_app.xlsx'."""
