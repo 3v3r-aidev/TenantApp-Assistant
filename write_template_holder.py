@@ -5,7 +5,7 @@ from datetime import datetime
 from io import BytesIO
 import re
 
-
+# -------------------- Append to Template Holder --------------------
 def append_to_template_holder(data_dict, holder_path="templates/Template_Data_Holder.xlsx"):
     expected_columns = [
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
@@ -26,21 +26,25 @@ def append_to_template_holder(data_dict, holder_path="templates/Template_Data_Ho
     df_combined.to_excel(holder_path, index=False, engine='openpyxl')
     print(f"Appended to {holder_path}")
 
-
+# -------------------- Generate Output Filename --------------------
 def generate_output_filename(property_address, prefix="Tenant"):
     date_str = datetime.now().strftime("%Y-%m-%d")
     words = property_address.split()
-    suffix = f"{words[1]}_{words[2]}" if len(words) >= 3 else words[1] if len(words) >= 2 else "Unknown"
+    if len(words) >= 3:
+        suffix = f"{words[1]}_{words[2]}"
+    elif len(words) >= 2:
+        suffix = f"{words[1]}"
+    else:
+        suffix = "Unknown"
     return f"{prefix}_{date_str}_{suffix}.xlsx"
 
-
+# -------------------- Single Applicant Template Writer --------------------
 def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
     wb = openpyxl.load_workbook(template_path)
     ws = wb.active
 
     ws["E3"] = data.get("Property Address")
     ws["E4"] = data.get("Move-in Date")
-
     ws["F14"] = data.get("FullName")
     ws["F15"] = data.get("Email")
     ws["F16"] = data.get("PhoneNumber")
@@ -58,10 +62,18 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
     ws["F33"] = f"{data.get('Make')} {data.get('Model')} {data.get('Year')}"
     ws["F34"] = data.get("Monthly Payment")
 
-   
+    # Save to in-memory buffer
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = generate_output_filename(data.get("Property Address"))
+    return output, filename
+
+# -------------------- Multi-Applicant Writer --------------------
 def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Template.xlsx"):
     if len(df) >= 3:
-        template_path = "templates/Tenant_Temp_Multiple.xlsx"
+        template_path = "templates/Tenant_Template_Multiple.xlsx"  # FIXED name
 
     wb = openpyxl.load_workbook(template_path)
     ws = wb.active
@@ -75,7 +87,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
 
     for idx, (_, row) in enumerate(df.iterrows()):
         if idx >= len(col_starts):
-            break
+            break  # skip if more than supported
         col = col_starts[idx]
 
         def write(row_offset, value):
@@ -98,12 +110,10 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         write(20, f"{row.get('Make')} {row.get('Model')} {row.get('Year')}")
         write(21, row.get("Monthly Payment"))
 
-    # ✅ MEMORY-ONLY: Save to in-memory bytes buffer
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    # ✅ Filename logic: use 2nd and 3rd words of address
     def generate_filename(address):
         cleaned = re.sub(r'[^\w\s]', '', str(address))
         words = cleaned.strip().split()
@@ -112,6 +122,3 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
 
     filename = generate_filename(first_row.get("Property Address"))
     return output, filename
-
-
-
