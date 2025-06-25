@@ -43,7 +43,7 @@ st.markdown(f"""
         .evercrest-logo span {{
             display: block;
             font-size: 8px;
-            color: #888888;
+            color: #373535;
             margin-top: 2px;
         }}
     </style>
@@ -198,10 +198,10 @@ st.sidebar.markdown("""
         line-height: 1.2;
         text-align: center;
     ">
-        <p style="font-size: 0.75rem; margin: 0; color: #888886;">
+        <p style="font-size: 0.75rem; margin: 0; color: #F5F7FA;">
             © 2025 TenantApp Assistant — Evercrest Homes
         </p>
-        <p style="font-size: 0.70rem; margin: 0; color: #888888;">
+        <p style="font-size: 0.70rem; margin: 0; color: #F5F7FA;">
             Powered by OpenAI | Developed by R.B. Urbis
         </p>
     </div>
