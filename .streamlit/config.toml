@@ -4,11 +4,12 @@ enableCORS = false
 port = 8501
 
 [theme]
-primaryColor = "#4CAF50"
-backgroundColor = "#F0F2F6"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#262730"
+primaryColor = "#79B0E0"               # lighter and clearer blue for better visibility
+backgroundColor = "#354A74"            # dark blue base (unchanged)
+secondaryBackgroundColor = "#5F7EA6"   # adjusted to be slightly deeper than before for better contrast with content
+textColor = "#F5F7FA"                  # very light gray (almost white) for excellent contrast
 font = "sans serif"
+
 
 [client]
 showSidebarNavigation = true
