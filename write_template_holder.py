@@ -98,18 +98,17 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         write(20, f"{row.get('Make')} {row.get('Model')} {row.get('Year')}")
         write(21, row.get("Monthly Payment"))
 
-    # Save data to memory for download
+    # ✅ MEMORY-ONLY: Save to in-memory bytes buffer
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    # Generate filename using property name logic
-
+    # ✅ Filename logic: use 2nd and 3rd words of address
     def generate_filename(address):
         cleaned = re.sub(r'[^\w\s]', '', str(address))
         words = cleaned.strip().split()
-        first_two = "_".join(words[:2]) if len(words) >= 2 else "tenant"
-        return f"{first_two}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+        word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+        return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
     filename = generate_filename(first_row.get("Property Address"))
     return output, filename
