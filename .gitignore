@@ -1,0 +1,39 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Jupyter and editor files
+.ipynb_checkpoints
+*.swp
+*.bak
+
+# Streamlit artifacts
+.streamlit/config.toml
+.streamlit/secrets.toml
+.streamlit/*.json
+.streamlit/*.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Excel or data outputs
+*.xlsx
+*.csv
+*.xls
+*.db
+*.sqlite3
+
+# Logs
+*.log
