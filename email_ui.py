@@ -12,8 +12,7 @@ EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 EMAIL_HOST = "smtp.ionos.com"
 EMAIL_PORT = 587  # STARTTLS port
 
-# --- Load environment ---
-load_dotenv()
+# --- Load credentials ---
 EMAIL_USER = st.secrets["email"] ["EMAIL_USER"]
 EMAIL_PASS = st.secrets["email"] ["EMAIL_PASS"]
 
@@ -21,11 +20,6 @@ EMAIL_PASS = st.secrets["email"] ["EMAIL_PASS"]
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 EMAIL_HOST = "smtp.ionos.com"
 EMAIL_PORT = 587  # STARTTLS port
-
-# --- Load environment ---
-load_dotenv()
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 # --- Function to render email UI ---
 import streamlit as st
