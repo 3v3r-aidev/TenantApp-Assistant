@@ -32,13 +32,14 @@
 ## 🛠️ Setup Instructions
 
 🔐 1. Set Secrets (Recommended)
+<br>
 Create a file at .streamlit/secrets.toml:
 
-<br>APP_USERNAME = "your_username"</br>
-<br>APP_PASSWORD = "your_password"</br>
-<br>EMAIL_USER = "your_email@example.com"</br>
-<br>EMAIL_PASS = "your_email_password"</br>
-<br>OPENAI_API_KEY = "sk-..."</br>
+- APP_USERNAME = "your_username"</br>
+- APP_PASSWORD = "your_password"</br>
+- EMAIL_USER = "your_email@example.com"</br>
+- EMAIL_PASS = "your_email_password"</br>
+- OPENAI_API_KEY = "sk-..."</br>
 
 Never commit real credentials to GitHub. Use Streamlit Cloud’s Secrets Manager in production.
 
@@ -47,11 +48,11 @@ Never commit real credentials to GitHub. Use Streamlit Cloud’s Secrets Manager
 pip install -r requirements.txt
 Ensure the following packages are in your requirements.txt:
 
-streamlit
-openai
-pymupdf
-Pillow
-pandas
+- streamlit
+- openai
+- pymupdf
+- Pillow
+- pandas
 
 ▶️ 3. Run the App
 
@@ -67,24 +68,19 @@ Then open http://localhost:8501 in your browser.
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true" alt="Sidebar" height = "400"> </p>
 
 ✅ Usage Flow
-Login using your configured credentials.
-Upload PDF applications (multiple allowed).
-Extract and save each form to Excel holder.
-Review validation results.
-Send email to applicants missing info (auto-generated).
-Download final templates with clean data.
+- Login using your configured credentials.
+- Upload PDF applications (multiple allowed).
+- Extract and save each form to Excel holder.
+- Review validation results.
+- Send email to applicants missing info (auto-generated).
+- Download final templates with clean data.
 
 📌 Notes
-Template_Data_Holder.xlsx is automatically cleared upon new batch uploads.
-A notification is shown if an applicant has missing required info and email is sent.
-A message is shown if all required info is present.
-GPT output is strictly parsed and flattened — schema enforced.
-
-🧑‍💻 Developer Tips
-Add logging during parsing to capture GPT issues.
-Ensure correct field matching in flatten_extracted_data.
-Use st.session_state flags to control UI visibility and prevent duplicates.
+- Template_Data_Holder.xlsx is automatically cleared upon new batch uploads.
+- A notification is shown if an applicant has missing required info and email is sent.
+- A message is shown if all required info is present.
+- GPT output is strictly parsed and flattened — schema enforced.
 
 📃 License
-MIT License © 2025
-Developed by Rhanny Urbis / BEST | Evercrest Homes
+- MIT License © 2025
+- Developed by Rhanny Urbis / BEST | Evercrest Homes
