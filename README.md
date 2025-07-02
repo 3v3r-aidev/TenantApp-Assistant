@@ -29,7 +29,8 @@
 
 ---
 
-🛠️ Setup Instructions
+## 🛠️ Setup Instructions
+
 🔐 1. Set Secrets (Recommended)
 Create a file at .streamlit/secrets.toml:
 
