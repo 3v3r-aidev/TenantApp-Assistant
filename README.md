@@ -60,6 +60,7 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 <p>
+<img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png?raw=true" alt="Login" width="400" height = "400"> 
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true" alt="Full UI" width="400" height = "400"> 
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?raw=true" alt="Main UI" width="400" height = "400"> 
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true" alt="Email Notification" width="400" height ="400"> 
