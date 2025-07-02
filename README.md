@@ -78,18 +78,16 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 
-📸 Screenshots
 
-<br>
+![Login]("screenshots/login_screen.png" width = "100" height = "100")
+https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png
+https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png
+https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png
+https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png
+https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png
 
-<img src="screenshots/login_screen.png" width="200"/>
-<img src="screenshots/load_screen.png" width="200"/>
-<img src="screenshots/full_ui.png" width="200"/>
-<img src="screenshots/main_ui.png" width="200"/>
-<img src="screenshots/sidebar_buttons.png" width="200"/>
-<img src="screenshots/email_notif.png" width="200"/>
 
-</br>
+
 
 
 ✅ Usage Flow
