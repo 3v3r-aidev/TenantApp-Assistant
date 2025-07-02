@@ -8,7 +8,6 @@ import base64
 import pandas as pd
 import streamlit as st
 
-
 openai.api_key = st.secrets["openai"] ["OPENAI_API_KEY"]
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
