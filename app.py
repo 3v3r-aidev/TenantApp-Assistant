@@ -1,3 +1,79 @@
+import streamlit as st
+import os
+import pandas as pd
+import json
+import base64
+from datetime import datetime
+import re
+from extract_tenant_data import process_pdf
+from extract_tenant_data import flatten_extracted_data, parse_gpt_output
+from write_to_excel_template import write_multiple_applicants_to_template
+from write_template_holder import write_to_template_holder
+from email.message import EmailMessage
+from email_ui import render_email_ui
+import smtplib
+from dotenv import load_dotenv
+
+# --- Page Config MUST be first ---
+st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
+
+# Function to encode to base64 the app logo
+def get_base64_image(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# Encode local image
+img_base64 = get_base64_image("assets/medical-history.png")
+
+# Inject fixed-position app logo with caption below
+st.markdown(f"""
+    <style>
+        .evercrest-logo {{
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            text-align: center;
+            z-index: 999;
+        }}
+
+        .evercrest-logo img {{
+            width: 100px;
+            height: 100px;
+            display: block;
+            margin: 0 auto;
+        }}
+
+        .evercrest-logo span {{
+            display: block;
+            font-size: 8px;
+            color: #373535;
+            margin-top: 2px;
+        }}
+    </style>
+
+    <div class="evercrest-logo">
+        <img src="data:image/png;base64,{img_base64}" />
+        <span>Icon by Iconic Panda</span>
+    </div>
+""", unsafe_allow_html=True)
+
+def generate_filename_from_address(address: str) -> str:
+    try:
+        cleaned = re.sub(r'[^\w\s]', '', str(address))
+        words = cleaned.strip().split()
+        first_two = "_".join(words[:2]) if len(words) >= 2 else "_".join(words)
+        date_str = datetime.now().strftime("%Y%m%d")
+        return f"{first_two}_{date_str}_app.xlsx".lower()
+    except Exception:
+        return f"unknown_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+        
+# --- Credentials ---
+USERNAME = st.secrets["app"] ["APP_USERNAME"]
+PASSWORD = st.secrets["app"] ["APP_PASSWORD"]
+EMAIL_USER = st.secrets["email"]["EMAIL_USER"]
+EMAIL_PASS = st.secrets["email"]["EMAIL_PASS"]
+
 # --- Login Logic ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
