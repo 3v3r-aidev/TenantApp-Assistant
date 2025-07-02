@@ -9,8 +9,6 @@ import base64
 import pandas as pd
 import streamlit as st
 
-openai.api_key = st.secrets["openai"] ["OPENAI_API_KEY"]
-
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
 def extract_images_from_pdf(pdf_path):
@@ -26,6 +24,7 @@ def extract_images_from_pdf(pdf_path):
 
 def call_gpt_vision_api(images):
     """Send the image(s) to GPT-4o for structured data extraction."""
+    openai.api_key = st.secrets["openai"] ["OPENAI_API_KEY"]
     image_parts = []
     for img in images:
         buffered = io.BytesIO()
