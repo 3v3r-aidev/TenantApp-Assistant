@@ -96,7 +96,12 @@ streamlit run app.py
 Visit http://localhost:8501 to interact with the UI.
 
 **📸 Screenshots**
-<p align="center"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png?raw=true" alt="Login" width="220"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png?raw=true" alt="Load Screen" width="220"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true" alt="Full UI" width="220"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?raw=true" alt="Main UI" width="220"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true" alt="Sidebar" width="220"> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true" alt="Email Notification" width="220"> </p>
+<p> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png?raw=true" alt="Login" width="550"height="400"> 
+<img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png?raw=true" alt="Load Screen" height="400"> 
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true" alt="Full UI" height="400""> 
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?raw=true" alt="Main UI" height="400"> 
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true" alt="Sidebar" height="400"> 
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true" alt="Email Notification" height="400"> </p>
 
 **✅ Usage Flow**
 - Login with configured credentials.
