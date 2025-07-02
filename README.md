@@ -34,11 +34,11 @@
 🔐 1. Set Secrets (Recommended)
 Create a file at .streamlit/secrets.toml:
 
-APP_USERNAME = "your_username"
-APP_PASSWORD = "your_password"
-EMAIL_USER = "your_email@example.com"
-EMAIL_PASS = "your_email_password"
-OPENAI_API_KEY = "sk-..."
+<br>APP_USERNAME = "your_username"</br>
+<br>APP_PASSWORD = "your_password"</br>
+<br>EMAIL_USER = "your_email@example.com"</br>
+<br>EMAIL_PASS = "your_email_password"</br>
+<br>OPENAI_API_KEY = "sk-..."</br>
 
 Never commit real credentials to GitHub. Use Streamlit Cloud’s Secrets Manager in production.
 
