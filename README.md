@@ -78,11 +78,11 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 
-![Login](screenshots/login_screen.png)
-![Full UI](screenshots/full_ui.png)
-![Main UI](screenshots/main_ui.png)
-![Sidebar](screenshots/sidebar_buttons.png)
-![Email](screenshots/email_notif.png)
+![Login](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png))
+![Full UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png)
+[![Main UI](](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png)
+[![Sidebar](](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png)
+[![Email](](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png)
 
 
 ✅ Usage Flow
