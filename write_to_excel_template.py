@@ -1,46 +1,118 @@
-import pandas as pd
-from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+import openpyxl
+import re
+from io import BytesIO
 from datetime import datetime
+from openpyxl.utils import get_column_letter
+import pandas as pd
 
-# Ordered fields matching Excel row 4 to 36
-field_order = [
-    "Form Name", "Form Email", "Form Cell Phone", "Form SSN", "Form DL No.",
-    "Form DOB", "Form Age", "Form Occupants", "Form Children", "Form Address",
-    "Landlord Name", "Landlord Phone", "Current Address Info", "Employer",
-    "Employer Address", "Supervisor Name/Phone", "Employment Date/Years",
-    "Gross Monthly Income", "Other Income", "Position", "Car Info",
-    "Monthly Car Payment", "Commute Time"
-]
 
-def get_column_pair(index):
-    """Returns Excel column letters for left/right cell pair (F/G, I/J, etc.)."""
-    start_col = 6 + index * 3  # F = col 6, I = 9, etc.
-    return get_column_letter(start_col), get_column_letter(start_col + 1)
+def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
+    try:
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
 
-def write_to_excel_template(data_file, template_file, output_file):
-    df = pd.read_excel(data_file)
+        # Property section
+        ws["E3"] = data.get("Property Address", "")
+        ws["E4"] = data.get("Move-in Date", "")
 
-    if df.empty:
-        raise ValueError("❌ No data found in the input file.")
+        # Representative
+        ws["F10"] = data.get("Rep Name", "")
+        ws["I9"]  = data.get("Rep Phone", "")
+        ws["I10"] = data.get("Rep Email", "")
 
-    if len(df) > 10:
-        raise ValueError("❌ Cannot write more than 10 applicants in one template.")
+        # Applicant section
+        ws["F14"] = data.get("FullName", "")
+        ws["F15"] = data.get("Email", "")
+        ws["F16"] = data.get("PhoneNumber", "")
+        ws["F17"] = data.get("SSN", "")
+        ws["F18"] = data.get("DriverLicenseNumber", "")
+        ws["F19"] = data.get("DOB", "")
+        ws["F23"] = data.get("Applicant's Current Address", "")
+        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
+        ws["F25"] = data.get("Day:", "")
+        ws["F27"] = data.get("Applicant's Current Employer","")
+        ws["F28"] = data.get("Employer Address", "")
+        ws["F29"] = f"{data.get("Employment Verification", '')} {data.get("Phone")}".strip()
+        ws["F30"] = data.get("Start Date", "")
+        ws["F31"] = data.get("Gross Monthly Income", "")
+        ws["F32"] = data.get("Position", "")
+        ws["F33"] = f"{data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
+        ws["F34"] = data.get("Monthly Payment", "")
 
-    wb = load_workbook(template_file)
-    ws = wb.active
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
 
-    # Write global property fields from first applicant
-    ws["E3"] = df.iloc[0].get("Property Address", "")
-    ws["E4"] = df.iloc[0].get("Move-in Date", "")
+        def generate_filename(address):
+            cleaned = re.sub(r'[^\w\s]', '', str(address))
+            words = cleaned.strip().split()
+            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
-    for idx, row in df.iterrows():
-        col1, col2 = get_column_pair(idx)
-        print(f"📥 Writing Applicant {idx + 1} to columns {col1}/{col2}")
-        for i, field in enumerate(field_order):
-            cell_row = 4 + i
-            value = row.get(field, "")
-            ws[f"{col1}{cell_row}"] = value
+        filename = generate_filename(data.get("Property Address", "tenant"))
+        return output, filename
 
-    wb.save(output_file)
-    print(f"✅ Excel template updated: {output_file}")
+    except Exception as e:
+        print(f"❌ Error in write_flattened_to_template: {e}")
+        return None
+
+
+def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Temp_Multiple.xlsx"):
+    try:
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
+
+        col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
+        start_row = 14
+
+        first_row = df.iloc[0]
+        ws["E3"] = first_row.get("Property Address", "")
+        ws["E4"] = first_row.get("Move-in Date", "")
+
+        # Representative details (added)
+        ws["F10"] = first_row.get("Rep Name", "")
+        ws["I9"]  = first_row.get("Rep Phone", "")
+        ws["I10"] = first_row.get("Rep Email", "")
+
+        for idx, (_, row) in enumerate(df.iterrows()):
+            if idx >= len(col_starts):
+                break
+            col = col_starts[idx]
+
+            def write(offset, value):
+                ws[f"{col}{start_row + offset}"] = value or ""
+
+            write(0, row.get("FullName"))
+            write(1, row.get("Email"))
+            write(2, row.get("PhoneNumber"))
+            write(3, row.get("SSN"))
+            write(4, row.get("DriverLicenseNumber"))
+            write(5, row.get("DOB"))
+            write(9, row.get("Applicant's Current Address"))
+            write(10, row.get("Landlord or Property Manager's Name"))
+            write(11, row.get("Phone: Day:"))
+            write(12, row.get("Applicant's Current Employer"))
+            write(13, row.get("Employer Address"))   
+            write(15, f"{row.get("Employment Verification Contact", '')} {row.get("Phone")}".strip())
+            write(16, row.get("Start Date"))
+            write(17, row.get("Gross Monthly Income"))
+            write(19, row.get("Position"))
+            write(20, f"{row.get('Make', '')} {row.get('Model', '')} {row.get('Year', '')}".strip())
+            write(21, row.get("Monthly Payment"))
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        def generate_filename(address):
+            cleaned = re.sub(r'[^\w\s]', '', str(address))
+            words = cleaned.strip().split()
+            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+
+        filename = generate_filename(first_row.get("Property Address", "tenant"))
+        return output, filename
+
+    except Exception as e:
+        print(f"❌ Error in write_multiple_applicants_to_template: {e}")
+        return None
