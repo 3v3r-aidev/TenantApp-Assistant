@@ -1,19 +1,19 @@
-import streamlit as st
 import openai
-import fitz  # PyMuPDF
+import fitz  
 import io
 from PIL import Image
 import json
 import os
 import base64
 import pandas as pd
+from dotenv import load_dotenv
 
-# Use Streamlit secrets (not dotenv)
-openai.api_key = st.secrets["openai"]["api_key"]
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
+EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
-# -------------------- PDF to Image --------------------
+
 def extract_images_from_pdf(pdf_path):
     """Extract all pages from PDF as PIL images."""
     images = []
@@ -24,7 +24,7 @@ def extract_images_from_pdf(pdf_path):
         images.append(img)
     return images
 
-# -------------------- Vision GPT Call --------------------
+
 def call_gpt_vision_api(images):
     """Send the image(s) to GPT-4o for structured data extraction."""
     image_parts = []
@@ -43,15 +43,60 @@ def call_gpt_vision_api(images):
         {
             "role": "system",
             "content": (
-                "You are a document parser. Extract structured data from tenant application forms and ID documents. "
-                "Return a JSON object with: Property Address, Move-in Date, FullName, DOB, SSN, Email, PhoneNumber, "
-                "Applicant's Current Address, Landlord or Property Manager's Name, Phone:Day:, "
-                "DriverLicenseNumber, IDType, IDIssuer, Nationality, FormSource, ApplicationDate. "
-                "Under C.Representation and Marketing: Name, Company, E-mail, Phone Number. "
-                "Under Employment and Other Income: Applicant's Current Employer, Employment Verification Contact:, "
-                "Phone, Employed to, Employed from, Gross Monthly Income, Position. "
-                "Under F. Vehicle Information: Type, Year, Make, Model, Monthly Payment. "
-                "Return null for missing fields. Output must be a valid JSON object."
+            "Extract structured tenant application data and return a JSON object using the exact schema below. All fields must be included, even if null. Do NOT add explanations. Focus especially on extracting **C. Representation and Marketing**, **Employment and Other Income**, and **F. Vehicle Information** sections — these are required.\n\n"
+
+            "Return only a valid JSON object with this format:\n\n"
+
+            "{\n"
+            '  "Property Address": string | null,\n'
+            '  "Move-in Date": string | null,\n'
+            '  "FullName": string | null,\n'
+            '  "PhoneNumber": string | null,\n'
+            '  "Email": string | null,\n'
+            '  "DOB": string | null,\n'
+            '  "SSN": string | null,\n'
+            '  "Applicant\'s Current Address": string | null,\n'
+            '  "Landlord or Property Manager\'s Name": string | null,\n'
+            '  "Day:": string | null,\n'
+            '  "IDType": string | null,\n'
+            '  "DriverLicenseNumber": string | null,\n'
+            '  "IDIssuer": string | null,\n'
+            '  "Nationality": string | null,\n'
+            '  "FormSource": string | null,\n'
+            '  "ApplicationDate": string | null,\n\n'
+
+            '  "C.Representation and Marketing": {\n'
+            '    "Name": string | null,\n'
+            '    "Company": string | null,\n'
+            '    "E-mail": string | null,\n'
+            '    "Phone Number": string | null\n'
+            '  },\n\n'
+
+            '  "Employment and Other Income:": {\n'
+            '    "Applicant\'s Current Employer": {\n'
+            '      "Employment Verification Contact:": string | null\n'
+            '      "Address": string | null,\n'
+            '      "Phone": string | null,\n'
+            '      "E-mail": string | null,\n'
+            '      "Position": string | null,\n'
+            '      "Start Date": string | null,\n'
+            '      "Gross Monthly Income": string | null,\n'
+            '    },\n'
+            '    "Child Support": string | null\n'
+            '  },\n\n'
+
+            '  "F. Vehicle Information:": {\n'
+            '    "Type": string | null,\n'
+            '    "Year": string | null,\n'
+            '    "Make": string | null,\n'
+            '    "Model": string | null,\n'
+            '    "Monthly Payment": string | null\n'
+            '  }\n'
+            "}\n\n"
+
+            "Repeat: In the 'Employment and Other Income:' section, the block labeled 'Applicant's Current Employer' includes multiple fields. Do not skip any. Visually locate the block using the label exactly as written on the form and extract the values immediately following each sub-label like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. Do not assume or reuse values from prior examples."
+
+
             )
         },
         {
@@ -67,87 +112,116 @@ def call_gpt_vision_api(images):
             temperature=0,
             max_tokens=1000
         )
-        content = response.choices[0].message.content.strip()
-        return json.loads(content) if content.startswith('{') else {"GPT_Output": content}
+        content = response.choices[0].message.content or ""
+        return {"GPT_Output": content.strip()}
     except Exception as e:
-        return {"error": f"API call failed: {str(e)}"}
+        return {"error": str(e)}
 
-# -------------------- Wrapper --------------------
+
+
 def process_pdf(pdf_path):
     images = extract_images_from_pdf(pdf_path)
     extracted_data = call_gpt_vision_api(images)
     return extracted_data, {}
 
-# -------------------- Output Utilities --------------------
-def save_to_excel_appended(data_dict):
-    """Append a new row to the Excel file without overwriting existing data."""
-    new_df = pd.DataFrame([data_dict])
-    if os.path.exists(EXTRACTED_DATA_PATH):
-        existing_df = pd.read_excel(EXTRACTED_DATA_PATH)
-        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-    else:
-        combined_df = new_df
-    combined_df.to_excel(EXTRACTED_DATA_PATH, index=False)
 
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
-    return "\n".join([page.get_text() for page in doc])
+    text_data = ""
+    for page in doc:
+        text_data += page.get_text()
+    return text_data
 
-# -------------------- Flatten Output --------------------
 def flatten_extracted_data(data):
-    """Flattens nested tenant data into a single-level dictionary for Excel."""
+    """Flattens structured GPT-extracted tenant application data to a flat dict for Excel."""
+
+    employment = data.get("Employment and Other Income:", {})
+    employer_raw = employment.get("Applicant's Current Employer", {})
+    employer_info = employer_raw if isinstance(employer_raw, dict) else {}
+
+    vehicle = data.get("F. Vehicle Information:", {})
+    vehicle = vehicle if isinstance(vehicle, dict) else {}
+
+    rep = data.get("C.Representation and Marketing", {})
+    rep = rep if isinstance(rep, dict) else {}
+
     flat = {
-        "Property Address": data.get("Property Address"),
-        "Move-in Date": data.get("Move-in Date"),
-        "FullName": data.get("FullName"),
-        "DOB": data.get("DOB"),
-        "SSN": data.get("SSN"),
-        "Email": data.get("Email"),
-        "PhoneNumber": data.get("PhoneNumber"),
-        "Applicant's Current Address": data.get("Applicant's Current Address"),
-        "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name"),
-        "Phone:Day:": data.get("Phone:Day:"),
-        "DriverLicenseNumber": data.get("DriverLicenseNumber"),
-        "IDType": data.get("IDType"),
-        "IDIssuer": data.get("IDIssuer"),
-        "Nationality": data.get("Nationality"),
-        "FormSource": data.get("FormSource"),
-        "ApplicationDate": data.get("ApplicationDate"),
+        # Top-level
+        "Property Address": data.get("Property Address", ""),
+        "Move-in Date": data.get("Move-in Date", ""),
+        "FullName": data.get("FullName", ""),
+        "DOB": data.get("DOB", ""),
+        "SSN": data.get("SSN", ""),
+        "Email": data.get("Email", ""),
+        "PhoneNumber": data.get("PhoneNumber", ""),
+        "Applicant's Current Address": data.get("Applicant's Current Address", ""),
+        "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name", ""),
+        "Day:": data.get("Day:", ""),
+        "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
+        "IDType": data.get("IDType", ""),
+        "IDIssuer": data.get("IDIssuer", ""),
+        "Nationality": data.get("Nationality", ""),
+        "FormSource": data.get("FormSource", ""),
+        "ApplicationDate": data.get("ApplicationDate", ""),
 
-        # Employment Info
-        "Applicant's Current Employer": data.get("Employment and Other Income:", {}).get("Applicant's Current Employer"),
-        "Employment Verification Contact:": data.get("Employment and Other Income:", {}).get("Employment Verification Contact:"),
-        "Phone": data.get("Employment and Other Income:", {}).get("Phone"),
-        "Employed from": data.get("Employment and Other Income:", {}).get("Employed from"),
-        "Employed to": data.get("Employment and Other Income:", {}).get("Employed to"),
-        "Gross Monthly Income": data.get("Employment and Other Income:", {}).get("Gross Monthly Income"),
-        "Position": data.get("Employment and Other Income:", {}).get("Position"),
+        # Rep
+        "Rep Name": rep.get("Name", ""),
+        "Rep Company": rep.get("Company", ""),
+        "Rep Email": rep.get("E-mail", ""),
+        "Rep Phone": rep.get("Phone Number", ""),
+        
+        # Individual fields (used in Excel)
+        "Applicant's Current Employer": data.get("Applicant's Current Employer",""),
+        "Employment Verification Contact": employer_info.get("Employment Verification Contact:", ""),
+        "Phone": employer_info.get("Phone",""),
+        "Employer Address": employer_info.get("Address", ""),
+        "Employer Phone": employer_info.get("Phone", ""),
+        "Start Date": employer_info.get("Start Date", ""),
+        "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
+        "Position": employer_info.get("Position", ""),
+        "Child Support": employment.get("Child Support", ""),
 
-        # Vehicle Info
-        "Type": data.get("F. Vehicle Information:", {}).get("Type"),
-        "Year": data.get("F. Vehicle Information:", {}).get("Year"),
-        "Make": data.get("F. Vehicle Information:", {}).get("Make"),
-        "Model": data.get("F. Vehicle Information:", {}).get("Model"),
-        "Monthly Payment": data.get("F. Vehicle Information:", {}).get("Monthly Payment")
+        # Vehicle
+        "Type": vehicle.get("Type", ""),
+        "Year": vehicle.get("Year", ""),
+        "Make": vehicle.get("Make", ""),
+        "Model": vehicle.get("Model", ""),
+        "Monthly Payment": vehicle.get("Monthly Payment", ""),
     }
-    return flat
 
-# -------------------- Clean GPT Output --------------------
+    return {k: ("" if v is None else v) for k, v in flat.items()}
+
+
 def parse_gpt_output(form_data):
     """
-    Parses GPT-4 JSON string and strips markdown formatting.
+    Parses the GPT-4 JSON string from the form_data['GPT_Output'] key and returns a Python dict.
+    Strips leading/trailing markdown backticks and safely loads JSON.
     """
     raw = form_data.get("GPT_Output", "").strip()
 
-    # Remove triple-backtick wrappers (markdown format)
+    # Remove markdown formatting if present
     if raw.startswith("```json"):
         raw = raw[7:]
-    elif raw.startswith("```"):
-        raw = raw[3:]
     if raw.endswith("```"):
         raw = raw[:-3]
 
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
+
+        # Patch for consistent keys expected by flatten_extracted_data
+        if "Employment" in parsed and "Employment and Other Income:" not in parsed:
+            parsed["Employment and Other Income:"] = parsed["Employment"]
+
+        if "Vehicle" in parsed and "F. Vehicle Information:" not in parsed:
+            parsed["F. Vehicle Information:"] = parsed["Vehicle"]
+
+        if "Representation" in parsed and "C.Representation and Marketing" not in parsed:
+            parsed["C.Representation and Marketing"] = parsed["Representation"]
+
+        return parsed
+
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid GPT JSON string: {e}")
+    
+    print("GPT Raw Output:", form_data["GPT_Output"])
+
