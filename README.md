@@ -31,7 +31,7 @@
 
 ## 🛠️ Setup Instructions
 
-🔐 1. Set Secrets (Recommended)
+**🔐 1. Set Secrets (Recommended)**
 <br>
 Create a file at .streamlit/secrets.toml:
 
@@ -43,7 +43,7 @@ Create a file at .streamlit/secrets.toml:
 
 Never commit real credentials to GitHub. Use Streamlit Cloud’s Secrets Manager in production.
 
-📦 2. Install Requirements
+**📦 2. Install Requirements**
 
 pip install -r requirements.txt
 Ensure the following packages are in your requirements.txt:
@@ -54,12 +54,12 @@ Ensure the following packages are in your requirements.txt:
 - Pillow
 - pandas
 
-▶️ 3. Run the App
+**▶️ 3. Run the App**
 
 streamlit run app.py
 Then open http://localhost:8501 in your browser.
 
-📸 Screenshots
+**📸 Screenshots**
 <p>
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png?raw=true" alt="Login" width="550" height = "400"> 
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true" alt="Full UI" width="400" height = "400"> 
@@ -67,7 +67,7 @@ Then open http://localhost:8501 in your browser.
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true" alt="Email Notification" width="400" height ="400"> 
 <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true" alt="Sidebar" height = "400"> </p>
 
-✅ Usage Flow
+**✅ Usage Flow**
 - Login using your configured credentials.
 - Upload PDF applications (multiple allowed).
 - Extract and save each form to Excel holder.
@@ -75,12 +75,12 @@ Then open http://localhost:8501 in your browser.
 - Send email to applicants missing info (auto-generated).
 - Download final templates with clean data.
 
-📌 Notes
+**📌 Notes**
 - Template_Data_Holder.xlsx is automatically cleared upon new batch uploads.
 - A notification is shown if an applicant has missing required info and email is sent.
 - A message is shown if all required info is present.
 - GPT output is strictly parsed and flattened — schema enforced.
 
-📃 License
+**📃 License**
 - MIT License © 2025
 - Developed by Rhanny Urbis / BEST | Evercrest Homes
