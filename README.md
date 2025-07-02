@@ -78,14 +78,19 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 
+📸 Screenshots
+
 <br>
-![Login Screen](screenshots/login_screen.png width ="200")
-![Load Screen](screenshots/load_screen.png" width="200")
-![Full UI](screenshots/full_ui.png" width="200")
+
+<img src="screenshots/login_screen.png" width="200"/>
+<img src="screenshots/load_screen.png" width="200"/>
+<img src="screenshots/full_ui.png" width="200"/>
+<img src="screenshots/main_ui.png" width="200"/>
+<img src="screenshots/sidebar_buttons.png" width="200"/>
+<img src="screenshots/email_notif.png" width="200"/>
+
 </br>
- ![Main UI](screenshots/main_ui.png" width="200")
- ![Sidebar](screenshots/sidebar_buttons.png" width="200")
- ![Email Notif](screenshots/email_notif.png" width="200")
+
 
 ✅ Usage Flow
 Login using your configured credentials.
