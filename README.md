@@ -79,10 +79,9 @@ Then open http://localhost:8501 in your browser.
 📸 Screenshots
 
 
-![Login]("screenshots/login_screen.png" width = "100" height = "100")
-https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png
-https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png
-https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png
+![Login]("/screenshots/login_screen.png" width="100" height="100")
+/screenshots/full_ui.png
+/screenshots/main_ui.png
 https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png
 https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png
 
