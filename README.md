@@ -77,12 +77,17 @@ streamlit run app.py
 Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
-
-![Login](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png)
-![Full UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png)
-![Main UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?)
-![Sidebar](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png)
-![Email](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png)
+<br>
+<div style="text-align: center;">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png" alt="Login" width="100" height="100">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png" alt="Main Screen" width="100" height="100">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png alt="Full UI" width="100" height="100">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png" alt="Main UI" width="100" height="100">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png" alt="Sidebar" width="100" height="100">
+  <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png" alt="Email Notif" width="100" height="100">
+</div>
+<br>
+<br>
 
 ✅ Usage Flow
 Login using your configured credentials.
