@@ -78,16 +78,11 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 
-
-![Login]("/screenshots/login_screen.png" width="100" height="100")
-/screenshots/full_ui.png
-/screenshots/main_ui.png
-https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png
-https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png
-
-
-
-
+![Login]("/screenshots/login_screen.png")
+![Full UI]("/screenshots/full_ui.png
+![Main UI]("/screenshots/main_ui.png
+![Sidebar]("/screenshots/sidebar_buttons.png
+![Email]("/screenshots/email_notif.png
 
 ✅ Usage Flow
 Login using your configured credentials.
