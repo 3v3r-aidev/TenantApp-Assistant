@@ -29,27 +29,6 @@
 
 ---
 
-## 📂 Folder Structure
-
-
-TenantAppAssistant/
-├── app.py
-├── extract_tenant_data.py
-├── write_to_excel_template.py
-├── write_template_holder.py
-├── email_ui.py
-├── templates/
-│   ├── Tenant_Template.xlsx
-│   ├── Tenant_Template_Multiple.xlsx
-│   └── Template_Data_Holder.xlsx
-├── assets/
-│   └── medical-history.png
-├── .streamlit/
-│   └── secrets.toml
-├── .env  # (Optional, if using local env vars)
-└── requirements.txt
-
-
 🛠️ Setup Instructions
 🔐 1. Set Secrets (Recommended)
 Create a file at .streamlit/secrets.toml:
