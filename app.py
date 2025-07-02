@@ -12,7 +12,6 @@ from write_template_holder import write_to_template_holder
 from email.message import EmailMessage
 from email_ui import render_email_ui
 import smtplib
-from dotenv import load_dotenv
 
 # --- Page Config MUST be first ---
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
