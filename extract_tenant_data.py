@@ -6,13 +6,11 @@ import json
 import os
 import base64
 import pandas as pd
-from dotenv import load_dotenv
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+openai.api_key = st.secrets["openai"] ["OPENAI_API_KEY"]
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
-
 
 def extract_images_from_pdf(pdf_path):
     """Extract all pages from PDF as PIL images."""
@@ -116,8 +114,6 @@ def call_gpt_vision_api(images):
         return {"GPT_Output": content.strip()}
     except Exception as e:
         return {"error": str(e)}
-
-
 
 def process_pdf(pdf_path):
     images = extract_images_from_pdf(pdf_path)
