@@ -78,13 +78,11 @@ Then open http://localhost:8501 in your browser.
 
 📸 Screenshots
 
-![Login](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true)
-![Full UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true)
-![Main UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?raw=true)
-![Sidebar](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true)
-![Email](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png?raw=true)
-
-
+![Login](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png)
+![Full UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png)
+![Main UI](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?)
+![Sidebar](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png)
+![Email](https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/email_notif.png)
 
 ✅ Usage Flow
 Login using your configured credentials.
