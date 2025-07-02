@@ -20,7 +20,7 @@
 ## 🧰 Tech Stack
 
 - [Streamlit](https://streamlit.io/)  
-- [Python 3.9+](https://www.python.org/)  
+- [Python 3.13](https://www.python.org/)  
 - [OpenAI GPT-4o (Vision)](https://platform.openai.com/)  
 - [PyMuPDF](https://pymupdf.readthedocs.io/)  
 - [Pillow](https://pypi.org/project/Pillow/)  
