@@ -6,7 +6,6 @@ import traceback
 import sys
 import os
 import pandas as pd
-from dotenv import load_dotenv
 
 # --- Constants ---
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
@@ -15,10 +14,8 @@ EMAIL_PORT = 587  # STARTTLS port
 
 # --- Load environment ---
 load_dotenv()
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-
+EMAIL_USER = st.secrets["email"] ["EMAIL_USER"]
+EMAIL_PASS = st.secrets["email"] ["EMAIL_PASS"]
 
 # --- Constants ---
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
