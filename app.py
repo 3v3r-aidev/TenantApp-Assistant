@@ -272,9 +272,8 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_pass=EMAIL_PASS
             )
 
+    # Use the global any_missing flag to decide what to show
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
-        st.session_state["trigger_validation"] = False
     else:
-        st.info("📨 Missing info found.")
-
+        st.warning("⚠️ Some applicants have missing required fields.")
