@@ -5,10 +5,6 @@ from datetime import datetime
 from io import BytesIO
 import re
 
-
-import os
-import pandas as pd
-
 def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Holder.xlsx"):
     expected_columns = [
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
