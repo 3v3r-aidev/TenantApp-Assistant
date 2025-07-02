@@ -22,45 +22,6 @@ EMAIL_HOST = "smtp.ionos.com"
 EMAIL_PORT = 587  # STARTTLS port
 
 # --- Function to render email UI ---
-import streamlit as st
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import traceback
-import sys
-
-import streamlit as st
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
-import traceback
-import os
-import pandas as pd
-from dotenv import load_dotenv
-
-# --- Constants ---
-EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
-EMAIL_HOST = "smtp.ionos.com"
-EMAIL_PORT = 587  # STARTTLS port
-
-# --- Load environment ---
-load_dotenv()
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-
-
-# --- Constants ---
-EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
-EMAIL_HOST = "smtp.ionos.com"
-EMAIL_PORT = 587  # STARTTLS port
-
-# --- Load environment ---
-load_dotenv()
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-# --- Function to render email UI ---
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
     if not email:
         st.error("❌ No valid email address available.")
