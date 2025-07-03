@@ -47,7 +47,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
 ---
 
 ## 🧰 Tech Stack
-
+```
 | Component        | Description                          |
 |------------------|--------------------------------------|
 | **Streamlit**     | Frontend & control flow UI           |
@@ -57,7 +57,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
 | **Pillow**        | Image preprocessing                  |
 | **Pandas**        | Data wrangling and Excel handling    |
 | **smtplib/email** | Sending transactional email notices  |
-
+```
 ---
 
 ## 🛠️ Setup Instructions
@@ -66,21 +66,21 @@ It is designed for **property managers, tenant screeners, and real estate operat
 
 Create a `.streamlit/secrets.toml` file with:
 
-'''
+```
 APP_USERNAME = "your_username"
 APP_PASSWORD = "your_password"
 EMAIL_USER = "your_email@example.com"
 EMAIL_PASS = "your_email_password"
 OPENAI_API_KEY = "sk-..."
-'''
+```
 
 Note: Never commit this file to source control. Use Streamlit Cloud's built-in secrets manager for deployment.
 
 **📦 2. Install Requirements**
 Install dependencies using:
-
+```
 pip install -r requirements.txt
-
+```
 Your requirements.txt should include:
 
 - streamlit
@@ -91,8 +91,9 @@ Your requirements.txt should include:
 
 **▶️ 3. Run the Application**
 Launch the app with:
-
+```
 streamlit run app.py
+```
 Visit http://localhost:8501 to interact with the UI.
 
 **📸 Screenshots**
