@@ -6,6 +6,8 @@ from io import BytesIO
 import re
 
 def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Holder.xlsx"):
+    if not isinstance(data_dict, dict) or not data_dict:
+        raise ValueError("No applicant data was provided. Please make sure all required fields are filled before saving.") # Added to handle empty dictionary
     expected_columns = [
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
         "Applicant's Current Address", "Landlord or Property Manager's Name", "Day:",
