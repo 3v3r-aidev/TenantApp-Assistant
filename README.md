@@ -47,7 +47,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
 ---
 
 ## 🧰 Tech Stack
-```
+
 | Component        | Description                          |
 |------------------|--------------------------------------|
 | **Streamlit**     | Frontend & control flow UI           |
@@ -57,7 +57,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
 | **Pillow**        | Image preprocessing                  |
 | **Pandas**        | Data wrangling and Excel handling    |
 | **smtplib/email** | Sending transactional email notices  |
-```
+
 ---
 
 ## 🛠️ Setup Instructions
