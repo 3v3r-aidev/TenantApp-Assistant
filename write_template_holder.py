@@ -12,7 +12,7 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
         "Applicant's Current Address", "Landlord or Property Manager's Name", "Day:",
         "Applicant's Current Employer", "Employment Verification Contact:", "Address", "Phone", "Position",
-        "Employed from", "Employed to", "Gross Monthly Income", "Type", "Year", "Make", "Model",
+        "Start Date", "Gross Monthly Income", "Type", "Year", "Make", "Model",
         "Monthly Payment", "IDType", "DriverLicenseNumber", "IDIssuer", "Nationality"
     ]
 
