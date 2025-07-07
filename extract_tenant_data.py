@@ -39,61 +39,64 @@ def call_gpt_vision_api(images):
             "role": "system",
             "content": (
                 "Extract structured tenant application data and return a JSON object using the exact schema below. "
-                "All fields must be included, even if null. Do NOT add explanations. Focus especially on extracting "
-                "**C. Representation and Marketing**, **Employment and Other Income**, and **F. Vehicle Information** sections — these are required.\n\n"
+"All fields must be included, even if null. Do NOT add explanations. Focus especially on extracting "
+"**C. Representation and Marketing**, **Employment and Other Income**, and **F. Vehicle Information** sections — these are required.\n\n"
 
-                "Return only a valid JSON object with this format:\n\n"
+"Return only a valid JSON object with this format:\n\n"
 
-                "{\n"
-                '  "Property Address": string | null,\n'
-                '  "Move-in Date": string | null,\n'
-                '  "FullName": string | null,\n'
-                '  "PhoneNumber": string | null,\n'
-                '  "Email": string | null,\n'
-                '  "DOB": string | null,\n'
-                '  "SSN": string | null,\n'
-                '  "Applicant\'s Current Address": string | null,\n'
-                '  "Landlord or Property Manager\'s Name": string | null,\n'
-                '  "IDType": string | null,\n'
-                '  "DriverLicenseNumber": string | null,\n'
-                '  "IDIssuer": string | null,\n'
-                '  "Nationality": string | null,\n'
-                '  "FormSource": string | null,\n'
-                '  "ApplicationDate": string | null,\n\n'
+"{\n"
+'  "Property Address": string | null,\n'
+'  "Move-in Date": string | null,\n'
+'  "FullName": string | null,\n'
+'  "PhoneNumber": string | null,\n'
+'  "Email": string | null,\n'
+'  "DOB": string | null,\n'
+'  "SSN": string | null,\n'
+'  "Applicant\'s Current Address": string | null,\n'
+'  "Landlord or Property Manager\'s Name": string | null,\n'
+'  "IDType": string | null,\n'
+'  "DriverLicenseNumber": string | null,\n'
+'  "IDIssuer": string | null,\n'
+'  "Nationality": string | null,\n'
+'  "FormSource": string | null,\n'
+'  "ApplicationDate": string | null,\n'
+'  "Phone:Day:": string | null,\n\n'
 
-                '  "C.Representation and Marketing": {\n'
-                '    "Name": string | null,\n'
-                '    "Company": string | null,\n'
-                '    "E-mail": string | null,\n'
-                '    "Phone Number": string | null\n'
-                '  },\n\n'
+'  "C.Representation and Marketing": {\n'
+'    "Name": string | null,\n'
+'    "Company": string | null,\n'
+'    "E-mail": string | null,\n'
+'    "Phone Number": string | null\n'
+'  },\n\n'
 
-                '  "Employment and Other Income:": {\n'
-                '    "Applicant\'s Current Employer": string | null,\n'
-                '    "Current Employer Details": {\n'
-                '      "Employment Verification Contact:": string | null,\n'
-                '      "Address": string | null,\n'
-                '      "Phone:": string | null,\n'
-                '      "E-mail": string | null,\n'
-                '      "Position": string | null,\n'
-                '      "Start Date": string | null,\n'
-                '      "Gross Monthly Income": string | null\n'
-                '    },\n'
-                '    "Child Support": string | null\n'
-                '  },\n\n'
+'  "Employment and Other Income:": {\n'
+'    "Applicant\'s Current Employer": string | null,\n'
+'    "Current Employer Details": {\n'
+'      "Employment Verification Contact:": string | null,\n'
+'      "Address": string | null,\n'
+'      "Phone:": string | null,\n'
+'      "E-mail": string | null,\n'
+'      "Position": string | null,\n'
+'      "Start Date": string | null,\n'
+'      "Gross Monthly Income": string | null\n'
+'    },\n'
+'    "Child Support": string | null\n'
+'  },\n\n'
 
-                '  "F. Vehicle Information:": {\n'
-                '    "Type": string | null,\n'
-                '    "Year": string | null,\n'
-                '    "Make": string | null,\n'
-                '    "Model": string | null,\n'
-                '    "Monthly Payment": string | null\n'
-                '  }\n'
-                "}\n\n"
+'  "F. Vehicle Information:": {\n'
+'    "Type": string | null,\n'
+'    "Year": string | null,\n'
+'    "Make": string | null,\n'
+'    "Model": string | null,\n'
+'    "Monthly Payment": string | null\n'
+'  }\n'
+"}\n\n"
 
-                'Repeat: In the \'Employment and Other Income:\' section, you should extract the value of \'Applicant\'s Current Employer\' and "Phone:Day:" as a string (company name).'
-                "Then extract the values from the block under it using labels like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. "
-                "Do not assume or reuse values from prior examples."
+"Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer' as a string. "
+"Then extract the values from the block under it using labels like 'Address', 'Phone:', and 'Start Date'. "
+"In the top-level fields, also extract 'Phone:Day:' if present. Do not skip it. "
+"If a value is missing, return null. Do not assume or reuse values from prior examples."
+
             )
         },
         {
