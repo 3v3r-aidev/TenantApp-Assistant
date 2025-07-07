@@ -71,7 +71,8 @@ def call_gpt_vision_api(images):
             '  },\n\n'
 
             '  "Employment and Other Income:": {\n'
-            '    "Applicant\'s Current Employer": {\n'
+            '    "Applicant\'s Current Employer": string | null,
+                  "Current Employer Details": {
             '      "Employment Verification Contact:": string | null\n'
             '      "Address": string | null,\n'
             '      "Phone": string | null,\n'
