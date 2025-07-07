@@ -9,12 +9,15 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
     if not isinstance(data_dict, dict) or not data_dict:
         raise ValueError("No applicant data was provided. Please make sure all required fields are filled before saving.") # Added to handle empty dictionary
     expected_columns = [
-        "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
-        "Applicant's Current Address", "Landlord or Property Manager's Name", "Landlord Phone",
-        "Applicant's Current Employer", "Employment Verification Contact:", "Address", "Phone", "Position",
-        "Start Date", "Gross Monthly Income", "Type", "Year", "Make", "Model",
-        "Monthly Payment", "IDType", "DriverLicenseNumber", "IDIssuer", "Nationality"
-    ]
+    "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
+    "Applicant's Current Address", "Landlord Phone", "Landlord or Property Manager's Name",
+    "IDType", "DriverLicenseNumber", "IDIssuer", "Nationality", "FormSource", "ApplicationDate",
+    "Rep Name", "Rep Company", "Rep Email", "Rep Phone",
+    "Applicant's Current Employer", "Employment Verification Contact", "Employer Address",
+    "Employer Phone", "Employer Email", "Position", "Start Date", "Gross Monthly Income",
+    "Child Support", "Type", "Year", "Make", "Model", "Monthly Payment"
+]
+
 
     # Create new DataFrame, ensuring correct columns and order
     df_new = pd.DataFrame([data_dict])
