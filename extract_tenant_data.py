@@ -92,7 +92,7 @@ def call_gpt_vision_api(images):
             '  }\n'
             "}\n\n"
 
-            "Repeat: In the 'Employment and Other Income:' section, the block labeled 'Applicant's Current Employer' includes multiple fields. Do not skip any. Visually locate the block using the label exactly as written on the form and extract the values immediately following each sub-label like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. Do not assume or reuse values from prior examples."
+            "Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer', do not skip it. Under the 'Applicant's Current Employer' block, there are also multiple fields. Do not skip any. Visually locate the block using the label exactly as written on the form and extract the values immediately following each sub-label like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. Do not assume or reuse values from prior examples."
 
 
             )
