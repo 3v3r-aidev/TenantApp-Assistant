@@ -1,12 +1,9 @@
 import openai
-import fitz  
+import fitz
 import io
 from PIL import Image
 import json
-import os
-import sys
 import base64
-import pandas as pd
 import streamlit as st
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
@@ -24,7 +21,7 @@ def extract_images_from_pdf(pdf_path):
 
 def call_gpt_vision_api(images):
     """Send the image(s) to GPT-4o for structured data extraction."""
-    openai.api_key = st.secrets["openai"] ["OPENAI_API_KEY"]
+    openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
     image_parts = []
     for img in images:
         buffered = io.BytesIO()
@@ -41,61 +38,63 @@ def call_gpt_vision_api(images):
         {
             "role": "system",
             "content": (
-            "Extract structured tenant application data and return a JSON object using the exact schema below. All fields must be included, even if null. Do NOT add explanations. Focus especially on extracting **C. Representation and Marketing**, **Employment and Other Income**, and **F. Vehicle Information** sections — these are required.\n\n"
+                "Extract structured tenant application data and return a JSON object using the exact schema below. "
+                "All fields must be included, even if null. Do NOT add explanations. Focus especially on extracting "
+                "**C. Representation and Marketing**, **Employment and Other Income**, and **F. Vehicle Information** sections — these are required.\n\n"
 
-            "Return only a valid JSON object with this format:\n\n"
+                "Return only a valid JSON object with this format:\n\n"
 
-            "{\n"
-            '  "Property Address": string | null,\n'
-            '  "Move-in Date": string | null,\n'
-            '  "FullName": string | null,\n'
-            '  "PhoneNumber": string | null,\n'
-            '  "Email": string | null,\n'
-            '  "DOB": string | null,\n'
-            '  "SSN": string | null,\n'
-            '  "Applicant\'s Current Address": string | null,\n'
-            '  "Landlord or Property Manager\'s Name": string | null,\n'
-            '  "Phone:": string | null,\n'
-            '  "IDType": string | null,\n'
-            '  "DriverLicenseNumber": string | null,\n'
-            '  "IDIssuer": string | null,\n'
-            '  "Nationality": string | null,\n'
-            '  "FormSource": string | null,\n'
-            '  "ApplicationDate": string | null,\n\n'
+                "{\n"
+                '  "Property Address": string | null,\n'
+                '  "Move-in Date": string | null,\n'
+                '  "FullName": string | null,\n'
+                '  "PhoneNumber": string | null,\n'
+                '  "Email": string | null,\n'
+                '  "DOB": string | null,\n'
+                '  "SSN": string | null,\n'
+                '  "Applicant\'s Current Address": string | null,\n'
+                '  "Landlord or Property Manager\'s Name": string | null,\n'
+                '  "Phone:": string | null,\n'
+                '  "IDType": string | null,\n'
+                '  "DriverLicenseNumber": string | null,\n'
+                '  "IDIssuer": string | null,\n'
+                '  "Nationality": string | null,\n'
+                '  "FormSource": string | null,\n'
+                '  "ApplicationDate": string | null,\n\n'
 
-            '  "C.Representation and Marketing": {\n'
-            '    "Name": string | null,\n'
-            '    "Company": string | null,\n'
-            '    "E-mail": string | null,\n'
-            '    "Phone Number": string | null\n'
-            '  },\n\n'
+                '  "C.Representation and Marketing": {\n'
+                '    "Name": string | null,\n'
+                '    "Company": string | null,\n'
+                '    "E-mail": string | null,\n'
+                '    "Phone Number": string | null\n'
+                '  },\n\n'
 
-            '  "Employment and Other Income:": {\n'
-            '    "Applicant\'s Current Employer": string | null,
-                  "Current Employer Details": {
-            '      "Employment Verification Contact:": string | null\n'
-            '      "Address": string | null,\n'
-            '      "Phone": string | null,\n'
-            '      "E-mail": string | null,\n'
-            '      "Position": string | null,\n'
-            '      "Start Date": string | null,\n'
-            '      "Gross Monthly Income": string | null,\n'
-            '    },\n'
-            '    "Child Support": string | null\n'
-            '  },\n\n'
+                '  "Employment and Other Income:": {\n'
+                '    "Applicant\'s Current Employer": string | null,\n'
+                '    "Current Employer Details": {\n'
+                '      "Employment Verification Contact:": string | null,\n'
+                '      "Address": string | null,\n'
+                '      "Phone": string | null,\n'
+                '      "E-mail": string | null,\n'
+                '      "Position": string | null,\n'
+                '      "Start Date": string | null,\n'
+                '      "Gross Monthly Income": string | null\n'
+                '    },\n'
+                '    "Child Support": string | null\n'
+                '  },\n\n'
 
-            '  "F. Vehicle Information:": {\n'
-            '    "Type": string | null,\n'
-            '    "Year": string | null,\n'
-            '    "Make": string | null,\n'
-            '    "Model": string | null,\n'
-            '    "Monthly Payment": string | null\n'
-            '  }\n'
-            "}\n\n"
+                '  "F. Vehicle Information:": {\n'
+                '    "Type": string | null,\n'
+                '    "Year": string | null,\n'
+                '    "Make": string | null,\n'
+                '    "Model": string | null,\n'
+                '    "Monthly Payment": string | null\n'
+                '  }\n'
+                "}\n\n"
 
-            "Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer', do not skip it. Under the 'Applicant's Current Employer' block, there are also multiple fields. Do not skip any. Visually locate the block using the label exactly as written on the form and extract the values immediately following each sub-label like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. Do not assume or reuse values from prior examples."
-
-
+                "Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer' as a string (company name). "
+                "Then extract the values from the block under it using labels like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. "
+                "Do not assume or reuse values from prior examples."
             )
         },
         {
@@ -112,9 +111,11 @@ def call_gpt_vision_api(images):
             max_tokens=1000
         )
         content = response.choices[0].message.content or ""
+        print("GPT Raw Output:", content)
         return {"GPT_Output": content.strip()}
     except Exception as e:
         return {"error": str(e)}
+
 
 def process_pdf(pdf_path):
     images = extract_images_from_pdf(pdf_path)
@@ -129,18 +130,16 @@ def extract_text_from_pdf(pdf_path):
         text_data += page.get_text()
     return text_data
 
+
 def flatten_extracted_data(data):
     """Flattens structured GPT-extracted tenant application data to a flat dict for Excel."""
 
     employment = data.get("Employment and Other Income:", {})
-    employer_raw = employment.get("Applicant's Current Employer", {})
-    employer_info = employer_raw if isinstance(employer_raw, dict) else {}
+    employer_name = employment.get("Applicant's Current Employer", "")
+    employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
 
     vehicle = data.get("F. Vehicle Information:", {})
-    vehicle = vehicle if isinstance(vehicle, dict) else {}
-
     rep = data.get("C.Representation and Marketing", {})
-    rep = rep if isinstance(rep, dict) else {}
 
     flat = {
         # Top-level
@@ -153,7 +152,7 @@ def flatten_extracted_data(data):
         "PhoneNumber": data.get("PhoneNumber", ""),
         "Applicant's Current Address": data.get("Applicant's Current Address", ""),
         "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name", ""),
-        "Day:": data.get("Day:", ""),
+        "Phone:": data.get("Phone:", ""),
         "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
         "IDType": data.get("IDType", ""),
         "IDIssuer": data.get("IDIssuer", ""),
@@ -166,13 +165,13 @@ def flatten_extracted_data(data):
         "Rep Company": rep.get("Company", ""),
         "Rep Email": rep.get("E-mail", ""),
         "Rep Phone": rep.get("Phone Number", ""),
-        
-        # Individual fields (used in Excel)
-        "Applicant's Current Employer": data.get("Applicant's Current Employer",""),
+
+        # Employment
+        "Applicant's Current Employer": employer_name,
         "Employment Verification Contact": employer_info.get("Employment Verification Contact:", ""),
-        "Phone": employer_info.get("Phone",""),
         "Employer Address": employer_info.get("Address", ""),
         "Employer Phone": employer_info.get("Phone", ""),
+        "Employer Email": employer_info.get("E-mail", ""),
         "Start Date": employer_info.get("Start Date", ""),
         "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
         "Position": employer_info.get("Position", ""),
@@ -183,7 +182,7 @@ def flatten_extracted_data(data):
         "Year": vehicle.get("Year", ""),
         "Make": vehicle.get("Make", ""),
         "Model": vehicle.get("Model", ""),
-        "Monthly Payment": vehicle.get("Monthly Payment", ""),
+        "Monthly Payment": vehicle.get("Monthly Payment", "")
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
@@ -195,8 +194,8 @@ def parse_gpt_output(form_data):
     Strips leading/trailing markdown backticks and safely loads JSON.
     """
     raw = form_data.get("GPT_Output", "").strip()
+    print("GPT Raw Output:", raw)
 
-    # Remove markdown formatting if present
     if raw.startswith("```json"):
         raw = raw[7:]
     if raw.endswith("```"):
@@ -205,7 +204,7 @@ def parse_gpt_output(form_data):
     try:
         parsed = json.loads(raw)
 
-        # Patch for consistent keys expected by flatten_extracted_data
+        # Patch aliases if any
         if "Employment" in parsed and "Employment and Other Income:" not in parsed:
             parsed["Employment and Other Income:"] = parsed["Employment"]
 
@@ -219,6 +218,3 @@ def parse_gpt_output(form_data):
 
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid GPT JSON string: {e}")
-    
-    print("GPT Raw Output:", form_data["GPT_Output"])
-
