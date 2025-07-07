@@ -62,7 +62,7 @@ def call_gpt_vision_api(images):
 '  "ApplicationDate": string | null,\n'
 '  "Phone:Day:": string | null,\n\n'
 
-'  "Applicant's Current Address": {\n,
+'  "Applicant\'s Current Address": {\n,
 '    "Phone:Day": string | null, \n'}, \n\n
 
 '  "C.Representation and Marketing": {\n'
