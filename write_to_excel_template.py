@@ -91,7 +91,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Day:"))
-            write(13, row.get(""Applicant's Current Employer"))   
+            write(13, row.get("Applicant's Current Employer"))   
             write(14, row.get("Employer Address"))
             write(15, f"{row.get("Employment Verification Contact", '')} {row.get("Phone")}".strip())
             write(16, row.get("Start Date"))
