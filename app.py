@@ -249,7 +249,8 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             "Phone Number": row.get("PhoneNumber", ""),
             "SSN": row.get("SSN", ""),
             "DOB": row.get("DOB", ""),
-            
+            "Current Employer": row.get("Applicant's Current Employer", ""),
+                        
         }
 
         for field_name, value in required_fields.items():
