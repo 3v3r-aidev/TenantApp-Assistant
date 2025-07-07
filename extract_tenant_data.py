@@ -163,7 +163,7 @@ def flatten_extracted_data(data):
         "Email": data.get("Email", ""),
         "PhoneNumber": data.get("PhoneNumber", ""),
         "Applicant's Current Address": address,
-        "Address Phone": address_phone,
+        "Landlord Phone": address_phone,
         "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name", ""),
         "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
         "IDType": data.get("IDType", ""),
