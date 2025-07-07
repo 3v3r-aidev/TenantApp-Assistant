@@ -246,7 +246,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
 
         required_fields = {
             "Full Name": row.get("FullName", ""),
-            "Phone": row.get("Phone", ""),
+            "Phone Number": row.get("PhoneNumber", ""),
             "SSN": row.get("SSN", ""),
             "DOB": row.get("DOB", ""),
             
