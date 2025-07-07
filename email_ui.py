@@ -58,7 +58,7 @@ Evercrest Homes Property Management Team"""
                 server.sendmail(email_user, email, message.as_string())
 
             st.success(f"📧 Email successfully sent to {full_name} at {email}")
-            st.session_state[sent_flag_key] = True
+            st.session_state[sent_flag_key] = False 
 
         except smtplib.SMTPAuthenticationError:
             st.error("❌ SMTP Authentication failed. Check your credentials.")
