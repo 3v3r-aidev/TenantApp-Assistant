@@ -274,6 +274,22 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
 
     # Use the global any_missing flag to decide what to show
     if not any_missing:
-        st.success("✅ All applicants have complete required fields.")
+        st.session_state["validation_status"] = "complete"
     else:
+        st.session_state["validation_status"] = "incomplete"
+
+    st.session_state["email_validation_done"] = True
+    st.session_state["trigger_validation"] = False
+
+# Display and clear validation message after run
+if st.session_state.get("email_validation_done"):
+    if st.session_state.get("validation_status") == "complete":
+        st.success("✅ All applicants have complete required fields.")
+    elif st.session_state.get("validation_status") == "incomplete":
         st.warning("⚠️ Some applicants have missing required fields.")
+    # Clear messages after display
+    st.session_state.pop("validation_status", None)
+    st.session_state.pop("email_validation_done", None)
+
+        
+
