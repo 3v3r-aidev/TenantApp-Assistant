@@ -10,7 +10,7 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
         raise ValueError("No applicant data was provided. Please make sure all required fields are filled before saving.") # Added to handle empty dictionary
     expected_columns = [
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
-        "Applicant's Current Address", "Landlord or Property Manager's Name", "Day:",
+        "Applicant's Current Address", "Landlord or Property Manager's Name", "Phone:",
         "Applicant's Current Employer", "Employment Verification Contact:", "Address", "Phone", "Position",
         "Start Date", "Gross Monthly Income", "Type", "Year", "Make", "Model",
         "Monthly Payment", "IDType", "DriverLicenseNumber", "IDIssuer", "Nationality"
