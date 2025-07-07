@@ -146,6 +146,13 @@ def flatten_extracted_data(data):
     vehicle = data.get("F. Vehicle Information:", {})
     rep = data.get("C.Representation and Marketing", {})
 
+    # Handle Applicant's Current Address which could be a dict or string
+    address = data.get("Applicant's Current Address", "")
+    address_phone = ""
+    if isinstance(address, dict):
+        address_phone = address.get("Phone:Day", "")
+        address = ""  # Assume string address is not present if it's nested
+
     flat = {
         # Top-level
         "Property Address": data.get("Property Address", ""),
@@ -155,9 +162,9 @@ def flatten_extracted_data(data):
         "SSN": data.get("SSN", ""),
         "Email": data.get("Email", ""),
         "PhoneNumber": data.get("PhoneNumber", ""),
-        "Applicant's Current Address": data.get("Applicant's Current Address", ""),
+        "Applicant's Current Address": address,
+        "Address Phone": address_phone,
         "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name", ""),
-        "Landlord Phone:": data.get("Phone:Day:", ""),
         "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
         "IDType": data.get("IDType", ""),
         "IDIssuer": data.get("IDIssuer", ""),
@@ -175,7 +182,7 @@ def flatten_extracted_data(data):
         "Applicant's Current Employer": employer_name,
         "Employment Verification Contact": employer_info.get("Employment Verification Contact:", ""),
         "Employer Address": employer_info.get("Address", ""),
-        "Employer Phone": employer_info.get("Phone", ""),
+        "Employer Phone": employer_info.get("Phone:", ""),
         "Employer Email": employer_info.get("E-mail", ""),
         "Start Date": employer_info.get("Start Date", ""),
         "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
