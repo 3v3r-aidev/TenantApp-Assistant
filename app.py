@@ -112,9 +112,9 @@ template_type = st.sidebar.selectbox(
     key="template_type_selector"
 )
 
-if not os.path.exists(EXTRACTED_DATA_PATH):
-    st.sidebar.warning("\u26A0\uFE0F Data holder file is missing. Please extract and save at least one application to initialize.")
-else:
+df_holder = pd.DataFrame()
+
+if os.path.exists(EXTRACTED_DATA_PATH):
     df_holder = pd.read_excel(EXTRACTED_DATA_PATH)
     st.sidebar.markdown(f"\U0001F4C4 File loaded. Rows: **{len(df_holder)}**")
     selected_indices = st.sidebar.multiselect(
@@ -123,6 +123,7 @@ else:
         format_func=lambda i: f"{df_holder.at[i, 'FullName']} - {df_holder.at[i, 'Property Address']}",
         key="applicant_selector"
     )
+
 
 def is_missing(value):
     try:
