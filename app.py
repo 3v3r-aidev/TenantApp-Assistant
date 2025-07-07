@@ -247,12 +247,12 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
         required_fields = {
             "Full Name": row.get("FullName", ""),
             "Email": row.get("Email", ""),
-            "Landlord Phone": row.get("Landlord Phone", ""),
+            "Phone": row.get("Phone", ""),
             "SSN": row.get("SSN", ""),
             "DOB": row.get("DOB", ""),
-            "Address": row.get("Applicant's Current Address", ""),
-            "Employer": row.get("Applicant's Current Employer", ""),
-            "Income": row.get("Gross Monthly Income", "")
+            "Address": row.get("Address", ""),
+            "Employer": row.get("Employer", ""),
+            "Income": row.get("Income", "")
         }
 
         for field_name, value in required_fields.items():
@@ -272,24 +272,9 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_pass=EMAIL_PASS
             )
 
-    # Use the global any_missing flag to decide what to show
     if not any_missing:
-        st.session_state["validation_status"] = "complete"
-    else:
-        st.session_state["validation_status"] = "incomplete"
-
-    st.session_state["email_validation_done"] = True
-    st.session_state["trigger_validation"] = False
-
-# Display and clear validation message after run
-if st.session_state.get("email_validation_done"):
-    if st.session_state.get("validation_status") == "complete":
         st.success("✅ All applicants have complete required fields.")
-    elif st.session_state.get("validation_status") == "incomplete":
-        st.warning("⚠️ Some applicants have missing required fields.")
-    # Clear messages after display
-    st.session_state.pop("validation_status", None)
-    st.session_state.pop("email_validation_done", None)
-
-        
+        st.session_state["trigger_validation"] = False
+    else:
+        st.info("📨 Missing info found.")
 
