@@ -75,9 +75,9 @@ def call_gpt_vision_api(images):
                 '  "Employment and Other Income:": {\n'
                 '    "Applicant\'s Current Employer": string | null,\n'
                 '    "Current Employer Details": {\n'
-                '      "Employment Verification Contact:": string | null,\n'
+                '      "Employment Verification Contact": string | null,\n'
                 '      "Address": string | null,\n'
-                '      "Phone:": string | null,\n'
+                '      "Phone": string | null,\n'
                 '      "E-mail": string | null,\n'
                 '      "Position": string | null,\n'
                 '      "Start Date": string | null,\n'
@@ -164,9 +164,9 @@ def flatten_extracted_data(data):
 
         # Employment
         "Applicant's Current Employer": employment.get("Applicant's Current Employer", ""),
-        "Employment Verification Contact": employer_info.get("Employment Verification Contact:", ""),
+        "Employment Verification Contact": employer_info.get("Employment Verification Contact", ""),
         "Employer Address": employer_info.get("Address", ""),
-        "Employer Phone": employer_info.get("Phone:", ""),
+        "Employer Phone": employer_info.get("Phone", ""),
         "Employer Email": employer_info.get("E-mail", ""),
         "Position": employer_info.get("Position", ""),
         "Start Date": employer_info.get("Start Date", ""),
@@ -182,3 +182,32 @@ def flatten_extracted_data(data):
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
+
+
+def parse_gpt_output(form_data):
+    raw = form_data.get("GPT_Output", "").strip()
+
+    # Remove markdown formatting if present
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+
+    try:
+        parsed = json.loads(raw)
+
+        # Patch for consistent keys expected by flatten_extracted_data
+        if "Employment" in parsed and "Employment and Other Income:" not in parsed:
+            parsed["Employment and Other Income:"] = parsed["Employment"]
+
+        if "Vehicle" in parsed and "F. Vehicle Information:" not in parsed:
+            parsed["F. Vehicle Information:"] = parsed["Vehicle"]
+
+        if "Representation" in parsed and "C.Representation and Marketing" not in parsed:
+            parsed["C.Representation and Marketing"] = parsed["Representation"]
+
+        print("GPT Raw Output:", form_data["GPT_Output"])  # moved here
+        return parsed
+
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid GPT JSON string: {e}")
