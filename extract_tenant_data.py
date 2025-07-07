@@ -55,7 +55,7 @@ def call_gpt_vision_api(images):
             '  "SSN": string | null,\n'
             '  "Applicant\'s Current Address": string | null,\n'
             '  "Landlord or Property Manager\'s Name": string | null,\n'
-            '  "Day:": string | null,\n'
+            '  "Phone:": string | null,\n'
             '  "IDType": string | null,\n'
             '  "DriverLicenseNumber": string | null,\n'
             '  "IDIssuer": string | null,\n'
