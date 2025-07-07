@@ -13,13 +13,8 @@ EMAIL_HOST = "smtp.ionos.com"
 EMAIL_PORT = 587  # STARTTLS port
 
 # --- Load credentials ---
-EMAIL_USER = st.secrets["email"] ["EMAIL_USER"]
-EMAIL_PASS = st.secrets["email"] ["EMAIL_PASS"]
-
-# --- Constants ---
-EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
-EMAIL_HOST = "smtp.ionos.com"
-EMAIL_PORT = 587  # STARTTLS port
+EMAIL_USER = st.secrets["email"]["EMAIL_USER"]
+EMAIL_PASS = st.secrets["email"]["EMAIL_PASS"]
 
 # --- Function to render email UI ---
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
@@ -32,6 +27,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
     # ✅ Skip rendering the form if already sent
     if st.session_state.get(sent_flag_key):
         st.success(f"✅ Email requesting missing info already sent to {full_name} at {email}")
+        st.info(f"Missing Info: {', '.join(missing_fields)}")
         return
 
     with st.expander(f"📧 Email for {email} (Missing: {', '.join(missing_fields)})", expanded=True):
@@ -55,12 +51,13 @@ Evercrest Homes Property Management Team"""
             message["Subject"] = subject
             message.attach(MIMEText(body, "plain"))
 
-            with smtplib.SMTP("smtp.ionos.com", 587) as server:
+            with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
                 server.starttls()
                 server.login(email_user, email_pass)
                 server.sendmail(email_user, email, message.as_string())
 
             st.success(f"📧 Email successfully sent to {full_name} at {email}")
+            st.info(f"Missing Info: {', '.join(missing_fields)}")  # <-- Added message here
             st.session_state[sent_flag_key] = True
 
         except smtplib.SMTPAuthenticationError:
@@ -68,4 +65,3 @@ Evercrest Homes Property Management Team"""
         except Exception as e:
             st.error(f"❌ Failed to send email to {email}")
             st.code(traceback.format_exc())
-
