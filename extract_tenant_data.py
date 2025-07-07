@@ -74,7 +74,7 @@ def call_gpt_vision_api(images):
                 '    "Current Employer Details": {\n'
                 '      "Employment Verification Contact:": string | null,\n'
                 '      "Address": string | null,\n'
-                '      "Phone": string | null,\n'
+                '      "Phone:Day:": string | null,\n'
                 '      "E-mail": string | null,\n'
                 '      "Position": string | null,\n'
                 '      "Start Date": string | null,\n'
@@ -92,7 +92,7 @@ def call_gpt_vision_api(images):
                 '  }\n'
                 "}\n\n"
 
-                "Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer' as a string (company name). "
+                "Repeat: In the 'Employment and Other Income:' section, you should extract the value of 'Applicant's Current Employer' and "Phone:Day:" as a string (company name). "
                 "Then extract the values from the block under it using labels like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. "
                 "Do not assume or reuse values from prior examples."
             )
@@ -152,7 +152,7 @@ def flatten_extracted_data(data):
         "PhoneNumber": data.get("PhoneNumber", ""),
         "Applicant's Current Address": data.get("Applicant's Current Address", ""),
         "Landlord or Property Manager's Name": data.get("Landlord or Property Manager's Name", ""),
-        "Phone:": data.get("Phone:", ""),
+        "Landlord Phone:": data.get("Phone:Day:", ""),
         "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
         "IDType": data.get("IDType", ""),
         "IDIssuer": data.get("IDIssuer", ""),
