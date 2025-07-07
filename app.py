@@ -237,6 +237,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
     st.caption("Validating Missing Info + Send Email")
 
     any_missing = False
+    all_missing_summary = []  # Collect missing info summaries
     df_check = pd.read_excel(EXTRACTED_DATA_PATH)
 
     for idx, row in df_check.iterrows():
@@ -250,7 +251,6 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             "SSN": row.get("SSN", ""),
             "DOB": row.get("DOB", ""),
             "Current Employer": row.get("Applicant's Current Employer", ""),
-                        
         }
 
         for field_name, value in required_fields.items():
@@ -270,9 +270,15 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_pass=EMAIL_PASS
             )
 
+            # Add to summary
+            summary_line = f"{full_name} ({email or 'no email'}): {', '.join(missing_fields)}"
+            all_missing_summary.append(summary_line)
+
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
         st.session_state["trigger_validation"] = False
     else:
-        st.info("📨 Missing info found.")
+        message = "📨 Missing info found:\n" + "\n".join(all_missing_summary)
+        st.info(message)
+
 
