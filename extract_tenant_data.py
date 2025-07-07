@@ -92,7 +92,7 @@ def call_gpt_vision_api(images):
                 '  }\n'
                 "}\n\n"
 
-                "Repeat: In the \'Employment and Other Income:\' section, you should extract the value of \'Applicant\'s Current Employer\' and "Phone:Day:" as a string (company name)."
+                'Repeat: In the \'Employment and Other Income:\' section, you should extract the value of \'Applicant\'s Current Employer\' and "Phone:Day:" as a string (company name).'
                 "Then extract the values from the block under it using labels like 'Address', 'Phone', and 'Start Date'. If a value is missing, return null. "
                 "Do not assume or reuse values from prior examples."
             )
