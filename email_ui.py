@@ -26,8 +26,9 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
 
     # ✅ Skip rendering the form if already sent
     if st.session_state.get(sent_flag_key):
-        st.success(f"✅ Email requesting missing info already sent to {full_name} at {email}")
         st.info(f"Missing Info: {', '.join(missing_fields)}")
+        st.success(f"✅ Email requesting missing info already sent to {full_name} at {email}")
+        
         return
 
     with st.expander(f"📧 Email for {email} (Missing: {', '.join(missing_fields)})", expanded=True):
