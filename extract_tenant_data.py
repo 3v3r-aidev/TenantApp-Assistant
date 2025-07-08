@@ -94,6 +94,7 @@ def call_gpt_vision_api(images):
                 '    "Monthly Payment": string | null\n'
                 '  }\n'
                 "}"
+                "Mandatory: For email, extract information as-is and do not change anything."
             )
         },
         {
