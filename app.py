@@ -112,19 +112,49 @@ template_type = st.sidebar.selectbox(
     key="template_type_selector"
 )
 
-df_holder = pd.DataFrame()
+# === Upload PDF Files ===
+uploaded_pdfs = st.file_uploader(
+    "Upload Tenant Application PDFs",
+    type=["pdf"],
+    accept_multiple_files=True,
+    key="tenant_pdf_uploader"
+)
 
-if os.path.exists(EXTRACTED_DATA_PATH):
-    df_holder = pd.read_excel(EXTRACTED_DATA_PATH)
-    st.sidebar.markdown(f"\U0001F4C4 File loaded. Rows: **{len(df_holder)}**")
-    selected_indices = st.sidebar.multiselect(
-        "Select applicant(s) to write to tenant template:",
-        options=df_holder.index,
-        format_func=lambda i: f"{df_holder.at[i, 'FullName']} - {df_holder.at[i, 'Property Address']}",
-        key="applicant_selector"
-    )
+# --- Extraction and Save All Logic ---
+if "batch_extracted" not in st.session_state:
+    st.session_state.batch_extracted = {}
+if "saved_applicants" not in st.session_state:
+    st.session_state.saved_applicants = []
 
+if uploaded_pdfs:
+    if st.button("Extract All Applications"):
+        for uploaded_file in uploaded_pdfs:
+            filename = uploaded_file.name
+            temp_path = os.path.join("temp", filename)
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.read())
 
+            extracted_data, _ = process_pdf(temp_path)
+            st.session_state.batch_extracted[filename] = extracted_data
+        st.success("✅ All applications extracted.")
+
+    if st.button("Save All Extracted Data"):
+        saved_records = []
+        for filename, data in st.session_state.batch_extracted.items():
+            try:
+                parsed = parse_gpt_output(data)
+                flat = flatten_extracted_data(parsed)
+                saved_records.append(flat)
+            except Exception as e:
+                st.warning(f"{filename}: Failed to parse – {e}")
+
+        if saved_records:
+            df = pd.DataFrame(saved_records)
+            df.to_excel(EXTRACTED_DATA_PATH, index=False)
+            st.success("✅ All extracted records saved.")
+            st.session_state.trigger_validation = True
+
+# === Validation and Email Notification ===
 def is_missing(value):
     try:
         if pd.isna(value):
@@ -133,112 +163,11 @@ def is_missing(value):
     except Exception:
         return True
 
-# --- Save to Tenant Template block ---
-if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
-    selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
-
-    if selected_df.empty:
-        st.sidebar.warning("Please select at least one applicant.")
-    else:
-        template_to_use = SINGLE_TEMPLATE_PATH if template_type == "1–2 Applicants" else MULTIPLE_TEMPLATE_PATH
-
-        if not os.path.exists(template_to_use):
-            st.sidebar.warning(f"{template_to_use} not found.")
-        else:
-            try:
-                output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
-
-                # Save to session for persistent use
-                st.session_state["final_output_bytes"] = output_bytes
-                st.session_state["final_filename"] = download_filename
-
-                # ✅ Trigger validation separately
-                st.session_state["trigger_validation"] = True
-
-            except Exception as e:
-                st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
-
-
-# ⬇️ Download button *outside* the button block
-if "final_output_bytes" in st.session_state and "final_filename" in st.session_state:
-    st.sidebar.download_button(
-        label="\u2B07\uFE0F Download Final Tenant Template",
-        data=st.session_state["final_output_bytes"],
-        file_name=st.session_state["final_filename"],
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-# === upload PDF logic ===
-uploaded_pdfs = st.file_uploader(
-    "Upload Tenant Application PDFs",
-    type=["pdf"],
-    accept_multiple_files=True,
-    key="tenant_pdf_uploader"
-)
-
-# Initialize session state once
-if "saved_applicants" not in st.session_state:
-    st.session_state["saved_applicants"] = []
-if "upload_batch_started" not in st.session_state:
-    st.session_state["upload_batch_started"] = False
-
-# Reset flag if no upload
-if not uploaded_pdfs:
-    st.session_state["upload_batch_started"] = False
-
-# Clear data if it's a new upload batch
-if uploaded_pdfs and not st.session_state["upload_batch_started"]:
-    # Clear Template_Data_Holder.xlsx
-    if os.path.exists(EXTRACTED_DATA_PATH):
-        pd.DataFrame().to_excel(EXTRACTED_DATA_PATH, index=False)
-
-    st.session_state["saved_applicants"] = []
-    st.session_state["upload_batch_started"] = True
-
-    # Clear related email/form session flags
-    for key in list(st.session_state.keys()):
-        if key.startswith("email_sent_success_") or key.startswith("form_data_") or key == "email_validation_done":
-            del st.session_state[key]
-
-# === Process each uploaded PDF ===
-for uploaded_file in uploaded_pdfs:
-    filename = uploaded_file.name
-    key_prefix = filename.replace(".", "_").replace(" ", "_")
-
-    with st.expander(f"{filename}"):
-        pdf_temp_path = os.path.join("temp", filename)
-        os.makedirs("temp", exist_ok=True)
-        with open(pdf_temp_path, "wb") as f:
-            f.write(uploaded_file.read())
-
-        if st.button(f"Extract: {filename}", key=f"extract_{key_prefix}"):
-            with st.spinner("Extracting data from application..."):
-                extracted, _ = process_pdf(pdf_temp_path)
-                st.session_state[f"form_data_{key_prefix}"] = extracted
-
-        if f"form_data_{key_prefix}" in st.session_state:
-            form_data = st.session_state[f"form_data_{key_prefix}"]
-            st.subheader("Data extracted.")
-
-            if st.button(f"Save {filename} to Excel", key=f"save_{key_prefix}"):
-                try:
-                    parsed_data = parse_gpt_output(form_data)
-                    flat_data = flatten_extracted_data(parsed_data)
-                    st.session_state["saved_applicants"].append(flat_data)
-
-                    df = pd.DataFrame(st.session_state["saved_applicants"])
-                    df.to_excel(EXTRACTED_DATA_PATH, index=False)
-
-                    st.success("✅ Saved to Template_Holder.xlsx")
-                except Exception as e:
-                    st.error(f"❌ Failed to parse and save data: {e}")
-
-
-# === Applicant Info Validation & Email Notification ===
 if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
-    st.caption("Validating Missing Info + Send Email")
+    st.caption("Validating Missing Info + Sending Emails...")
 
     any_missing = False
-    all_missing_summary = []  # Collect missing info summaries
+    all_missing_summary = []
     df_check = pd.read_excel(EXTRACTED_DATA_PATH)
 
     for idx, row in df_check.iterrows():
@@ -271,7 +200,6 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_pass=EMAIL_PASS
             )
 
-            # Add to summary
             summary_line = f"{full_name} ({email or 'no email'}): {', '.join(missing_fields)}"
             all_missing_summary.append(summary_line)
 
@@ -279,7 +207,4 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
         st.success("✅ All applicants have complete required fields.")
         st.session_state["trigger_validation"] = False
     else:
-        message = "📨 Missing info found:\n" + "\n".join(all_missing_summary)
-        st.info(message)
-
-
+        st.info("\n".join(all_missing_summary))
