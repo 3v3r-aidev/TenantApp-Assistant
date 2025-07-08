@@ -244,10 +244,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             if isinstance(result, tuple) and len(result) == 2:
                 updated_full_name, updated_email = result
             else:
-                updated_full_name, updated_email = full_name, email
-
-            summary_line = f"{updated_full_name} ({updated_email or 'no email'}): {', '.join(missing_fields)}"
-            all_missing_summary.append(summary_line)
+                updated_full_name, updated_email = full_name, email       
 
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
