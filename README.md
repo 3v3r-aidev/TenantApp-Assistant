@@ -22,7 +22,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
 
 ### 📄 Flattened Excel Export
 - Extracted data is cleaned and flattened into a structured format.
-- Appends to a persistent holder file: `Template_Data_Holder.xlsx` for cumulative processing and tracking.
+- Appends to a session-based temporary holder file: `Template_Data_Holder.xlsx` for cumulative processing and tracking.
 
 ### 📋 Auto-Generate Formatted Excel Templates
 - Supports single and multiple applicant templates (`Tenant_Template.xlsx`, `Tenant_Template_Multiple.xlsx`).
