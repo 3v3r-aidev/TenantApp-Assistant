@@ -30,7 +30,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
         st.success(f"\u2705 Email requesting missing info already sent to {full_name} at {email}")
         return
 
-    with st.expander(f"\ud83d\udce7 Review & Send Email to {email}", expanded=True):
+    with st.expander(f"Review & Send Email to {email}", expanded=True):
         default_subject = "Missing Information in Your Application"
         default_body = f"""Dear {full_name},\n\nWe reviewed your rental application and noticed the following missing information:\n\n{', '.join(missing_fields)}\n\nPlease provide the missing details at your earliest convenience so we can continue processing your application.\n\nThank you,\nEvercrest Homes Property Management Team"""
 
