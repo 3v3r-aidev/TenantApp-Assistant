@@ -32,8 +32,8 @@ It is designed for **property managers, tenant screeners, and real estate operat
 - Flags missing or malformed key fields:
   - Social Security Number (SSN)
   - Date of Birth
-  - Employer name
-  - Monthly income
+  - Phone
+  
 - Validation report is shown in-app and automatically sends a template email to applicant/s with missing required info.
 
 ### 📧 Automated Follow-Up Emails
