@@ -97,7 +97,7 @@ Visit http://localhost:8501 to interact with the UI.
 
 **📸 Screenshots**
 <p> <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/login_screen.png?raw=true" alt="Login" width="400"height="400"> 
-<img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png?raw=true" alt="Load Screen" width="400" height="400"> 
+   <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/load_screen.png?raw=true" alt="Load Screen" width="400" height="400"> 
   <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/full_ui.png?raw=true" alt="Full UI" width="400" height="400""> 
   <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/main_ui.png?raw=true" alt="Main UI" width="400" height="400"> 
   <img src="https://github.com/rnx2024/AppScreener-Assistant/blob/main/screenshots/sidebar_buttons.png?raw=true" alt="Sidebar" width="400" height="400"> 
