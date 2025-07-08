@@ -15,6 +15,9 @@ import smtplib
 # --- Page Config MUST be first ---
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
 
+# Ensure temp directory exists
+os.makedirs("temp", exist_ok=True)
+
 # Function to encode to base64 the app logo
 def get_base64_image(path):
     with open(path, "rb") as f:
@@ -65,7 +68,7 @@ def generate_filename_from_address(address: str) -> str:
         return f"{first_two}_{date_str}_app.xlsx".lower()
     except Exception:
         return f"unknown_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
-        
+
 # --- Credentials ---
 USERNAME = st.secrets["app"] ["APP_USERNAME"]
 PASSWORD = st.secrets["app"] ["APP_PASSWORD"]
