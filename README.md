@@ -34,7 +34,7 @@ It is designed for **property managers, tenant screeners, and real estate operat
   - Date of Birth
   - Employer name
   - Monthly income
-- Validation report is shown in-app and optionally emailed to applicant.
+- Validation report is shown in-app and automatically sends a template email to applicant/s with missing required info.
 
 ### 📧 Automated Follow-Up Emails
 - Applicants with missing info receive auto-generated email notifications.
