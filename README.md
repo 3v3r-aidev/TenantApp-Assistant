@@ -38,7 +38,6 @@ It is designed for **property managers, tenant screeners, and real estate operat
 
 ### 📧 Automated Follow-Up Emails
 - Applicants with missing info receive auto-generated email notifications.
-- Email content is customized with field-level feedback.
 
 ### 🧹 Automatic File Cleanup
 - Cleans up residual data from previous runs upon each new batch upload.
