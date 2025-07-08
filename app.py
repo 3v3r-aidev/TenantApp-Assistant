@@ -232,7 +232,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             any_missing = True
             key_suffix = f"{idx}_{email.replace('@', '_').replace('.', '_') if email else f'no_email_{idx}'}"
 
-            render_email_ui(
+            updated_full_name, updated_email = render_email_ui(
                 email=email,
                 missing_fields=missing_fields,
                 full_name=full_name,
@@ -241,7 +241,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_pass=EMAIL_PASS
             )
 
-            summary_line = f"{full_name} ({email or 'no email'}): {', '.join(missing_fields)}"
+            summary_line = f"{updated_full_name} ({updated_email or 'no email'}): {', '.join(missing_fields)}"
             all_missing_summary.append(summary_line)
 
     if not any_missing:
