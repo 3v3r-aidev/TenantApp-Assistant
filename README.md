@@ -96,13 +96,10 @@ streamlit run app.py
 Visit http://localhost:8501 to interact with the UI.
 
 **📸 Screenshots**
-<p> <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/login_screen.png" alt="Login" width="400"height="500"> 
-   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/load_screen.png" alt="Load Screen" width="400" height="400"> 
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="400" height="400""> 
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/main_ui.png" alt="Main UI" width="400" height="400"> 
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/sidebar_buttons.png" alt="Sidebar" width="400" height="400"> 
-  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/email_notif.png" alt="Email Notification" width="400" height="500"> </p>
-
+ 
 **✅ Usage Flow**
 - Login with configured credentials.
 - Upload PDF applications (multiple allowed).
