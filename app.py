@@ -168,7 +168,7 @@ if "saved_applicants" not in st.session_state:
     st.session_state.saved_applicants = []
 
 if uploaded_pdfs:
-    if st.button("Extract All Applications"):
+    if st.button("Extract Data"):
         for uploaded_file in uploaded_pdfs:
             filename = uploaded_file.name
             temp_path = os.path.join("temp", filename)
@@ -179,7 +179,7 @@ if uploaded_pdfs:
             st.session_state.batch_extracted[filename] = extracted_data
         st.success("✅ All applications extracted.")
 
-    if st.button("Save All Extracted Data"):
+    if st.button("Save Extracted Data"):
         saved_records = []
         for filename, data in st.session_state.batch_extracted.items():
             try:
