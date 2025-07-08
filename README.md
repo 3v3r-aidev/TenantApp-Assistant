@@ -99,7 +99,6 @@ Visit http://localhost:8501 to interact with the UI.
 <p>
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="400" height="400""> 
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/main_ui.png" alt="Main UI" width="400" height="400"> /<p>
- <p> <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/sidebar_buttons.png" alt="Sidebar"> </p>
  
 **✅ Usage Flow**
 - Login with configured credentials.
