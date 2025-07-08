@@ -115,6 +115,44 @@ template_type = st.sidebar.selectbox(
     key="template_type_selector"
 )
 
+# Load existing holder
+df_holder = pd.DataFrame()
+if os.path.exists(EXTRACTED_DATA_PATH):
+    df_holder = pd.read_excel(EXTRACTED_DATA_PATH)
+    st.sidebar.markdown(f"\U0001F4C4 File loaded. Rows: **{len(df_holder)}**")
+    selected_indices = st.sidebar.multiselect(
+        "Select applicant(s) to write to tenant template:",
+        options=df_holder.index,
+        format_func=lambda i: f"{df_holder.at[i, 'FullName']} - {df_holder.at[i, 'Property Address']}",
+        key="applicant_selector"
+    )
+
+# Save to Tenant Template
+if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
+    selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
+    if selected_df.empty:
+        st.sidebar.warning("Please select at least one applicant.")
+    else:
+        template_to_use = SINGLE_TEMPLATE_PATH if template_type == "1–2 Applicants" else MULTIPLE_TEMPLATE_PATH
+        if not os.path.exists(template_to_use):
+            st.sidebar.warning(f"{template_to_use} not found.")
+        else:
+            try:
+                output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
+                st.session_state["final_output_bytes"] = output_bytes
+                st.session_state["final_filename"] = download_filename
+                st.session_state["trigger_validation"] = True
+            except Exception as e:
+                st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
+
+if "final_output_bytes" in st.session_state and "final_filename" in st.session_state:
+    st.sidebar.download_button(
+        label="\u2B07\uFE0F Download Final Tenant Template",
+        data=st.session_state["final_output_bytes"],
+        file_name=st.session_state["final_filename"],
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 # === Upload PDF Files ===
 uploaded_pdfs = st.file_uploader(
     "Upload Tenant Application PDFs",
