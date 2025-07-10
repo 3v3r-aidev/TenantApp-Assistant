@@ -48,7 +48,7 @@ def call_gpt_vision_api(images):
                 "{\n"
                 '  "Property Address": string | null,\n'
                 '  "Move-in Date": string | null,\n'
-                '  "Monthly Rent"
+                '  "Monthly Rent": string | null, \n'
                 '  "FullName": string | null,\n'
                 '  "PhoneNumber": string | null,\n'
                 '  "Email": string | null,\n'
