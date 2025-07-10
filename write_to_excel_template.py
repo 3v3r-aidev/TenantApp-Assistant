@@ -69,7 +69,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         first_row = df.iloc[0]
         ws["E3"] = first_row.get("Property Address", "")
         ws["E4"] = first_row.get("Move-in Date", "")
-        ws["E5"] = first_row.get("Monthly Rent"."")
+        ws["E5"] = first_row.get("Monthly Rent", "")
 
         # Representative details (added)
         ws["F10"] = first_row.get("Rep Name", "")
