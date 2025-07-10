@@ -17,8 +17,8 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
 
         # Representative
         ws["F10"] = data.get("Rep Name", "")
-        ws["I9"]  = data.get("Rep Phone", "")
-        ws["I10"] = data.get("Rep Email", "")
+        ws["J9"]  = data.get("Rep Phone", "")
+        ws["J10"] = data.get("Rep Email", "")
 
         # Applicant section
         ws["F14"] = data.get("FullName", "")
@@ -71,8 +71,8 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
 
         # Representative details (added)
         ws["F10"] = first_row.get("Rep Name", "")
-        ws["I9"]  = first_row.get("Rep Phone", "")
-        ws["I10"] = first_row.get("Rep Email", "")
+        ws["J9"]  = first_row.get("Rep Phone", "")
+        ws["J10"] = first_row.get("Rep Email", "")
 
         for idx, (_, row) in enumerate(df.iterrows()):
             if idx >= len(col_starts):
