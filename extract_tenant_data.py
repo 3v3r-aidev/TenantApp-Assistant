@@ -48,6 +48,7 @@ def call_gpt_vision_api(images):
                 "{\n"
                 '  "Property Address": string | null,\n'
                 '  "Move-in Date": string | null,\n'
+                '  "Monthly Rent"
                 '  "FullName": string | null,\n'
                 '  "PhoneNumber": string | null,\n'
                 '  "Email": string | null,\n'
@@ -142,6 +143,7 @@ def flatten_extracted_data(data):
     flat = {
         "Property Address": data.get("Property Address", ""),
         "Move-in Date": data.get("Move-in Date", ""),
+        "Monthly Rent": data.get("Monthly Rent", ""),
         "FullName": data.get("FullName", ""),
         "PhoneNumber": data.get("PhoneNumber", ""),
         "Email": data.get("Email", ""),
