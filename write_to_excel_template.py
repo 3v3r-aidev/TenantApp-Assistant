@@ -52,7 +52,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F30"] = data.get("Start Date", "")
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
-        ws["F34"] = f"{data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
+        ws["F34"] = f"{data.get {'Type', '')} {data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
         ws["F35"] = data.get("Monthly Payment", "")
 
         output = BytesIO()
@@ -111,7 +111,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
-            write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
+            write(15, f"{data.get {'Type', '')} {data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
             write(16, row.get("Start Date"))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
