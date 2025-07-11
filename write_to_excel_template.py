@@ -52,8 +52,8 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F30"] = data.get("Start Date", "")
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
-        ws["F33"] = f"{data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
-        ws["F34"] = data.get("Monthly Payment", "")
+        ws["F34"] = f"{data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
+        ws["F35"] = data.get("Monthly Payment", "")
 
         output = BytesIO()
         wb.save(output)
