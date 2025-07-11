@@ -111,11 +111,11 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
-            write(15, f"{data.get {'Type', '')} {data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
+            write(15, f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
             write(16, row.get("Start Date"))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
-            write(20, f"{row.get('Make', '')} {row.get('Model', '')} {row.get('Year', '')}".strip())
+            write(20, f"{data.get {'Type', '')} {data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
             write(21, row.get("Monthly Payment"))
 
         output = BytesIO()
