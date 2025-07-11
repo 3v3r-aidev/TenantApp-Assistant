@@ -115,7 +115,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
             write(20, f"{row.get('Vehicle Type', '')} {row.get('Vehicle Make', '')} {row.get('Vehicle Model', '')} {row.get('Vehicle Year', '')}".strip())
-            write(21, row.get("Monthly Payment"))
+            write(21, row.get("Vehicle Monthly Payment"))
 
         output = BytesIO()
         wb.save(output)
