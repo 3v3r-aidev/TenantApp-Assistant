@@ -195,7 +195,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Vehicle Make": vehicle.get("Make", ""),
         "Vehicle Model": vehicle.get("Model", ""),
         "Vehicle Monthly Payment": vehicle.get("Monthly Payment", ""),
-        "Children Count": children_count,
+        "No of Children": children_count,
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
