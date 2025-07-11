@@ -73,7 +73,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         return None
 
 
-def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Temp_Multiple.xlsx"):
+def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Template_Multiple.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
