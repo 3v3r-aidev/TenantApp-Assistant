@@ -104,7 +104,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(4, row.get("DriverLicenseNumber"))
             write(5, row.get("DOB"))
             write(6, calc_age(row.get("DOB", "")))  # Age
-            write(7, row.get("No of Children", ""))
+            write(8, row.get("No of Children", ""))
             write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Landlord Phone"))
