@@ -152,12 +152,12 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     address_phone = addr_block.get("Phone:Day", "") if isinstance(addr_block, dict) else ""
     landlord_name = addr_block.get("Landlord or Property Manager's Name", "") if isinstance(addr_block, dict) else ""
 
-    occupants = data.get("E. Occupant Information", [])
-    occupant_count = 0
-    if isinstance(occupants, list):
-        for o in occupants:
+    children = data.get("E. Occupant Information", [])
+    children_count = 0
+    if isinstance(children, list):
+        for o in children:
             if isinstance(o, dict) and any(o.get(k, "").strip() for k in ("Name", "Relationship", "DOB")):
-                occupant_count += 1
+                children_count += 1
 
     flat = {
         "Property Address": data.get("Property Address", ""),
@@ -195,7 +195,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Vehicle Make": vehicle.get("Make", ""),
         "Vehicle Model": vehicle.get("Model", ""),
         "Vehicle Monthly Payment": vehicle.get("Monthly Payment", ""),
-        "Occupant Count": occupant_count,
+        "Children Count": children_count,
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
