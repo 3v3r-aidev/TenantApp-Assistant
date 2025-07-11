@@ -1,72 +1,60 @@
-# ────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ────────────────────────────────────────────────────────────────────────────
+import openpyxl
+import re
+import traceback
+from io import BytesIO
 from datetime import datetime, date
 
+
 def calc_age(dob_str: str) -> str | int:
-    """Return age in whole years or '' if dob_str is blank/invalid."""
+    """Return age in years or '' if invalid/blank."""
     if not dob_str:
         return ""
     for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
         try:
             dob = datetime.strptime(dob_str, fmt).date()
             today = date.today()
-            return today.year - dob.year - (
-                (today.month, today.day) < (dob.month, dob.day)
-            )
+            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
         except ValueError:
             continue
     return "Invalid DOB"
 
 
-# ────────────────────────────────────────────────────────────────────────────
-#  1) Single-applicant writer  (Tenant_Template.xlsx)
-# ────────────────────────────────────────────────────────────────────────────
 def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # Property
+        # Property section
         ws["E3"] = data.get("Property Address", "")
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = data.get("Monthly Rent", "")
 
         # Representative
         ws["F10"] = data.get("Rep Name", "")
-        ws["J9"]  = data.get("Rep Phone", "")
+        ws["J9"] = data.get("Rep Phone", "")
         ws["J10"] = data.get("Rep Email", "")
 
-        # Applicant core
+        # Applicant
         ws["F14"] = data.get("FullName", "")
         ws["F15"] = data.get("Email", "")
         ws["F16"] = data.get("PhoneNumber", "")
         ws["F17"] = data.get("SSN", "")
         ws["F18"] = data.get("DriverLicenseNumber", "")
         ws["F19"] = data.get("DOB", "")
-
-        # NEW – Age calculation
-        ws["F20"] = calc_age(data.get("DOB", ""))
-
-        # Children & address
+        ws["F20"] = calc_age(data.get("DOB", ""))  # Age
         ws["F22"] = data.get("No of Children", "")
         ws["F23"] = data.get("Applicant's Current Address", "")
         ws["F24"] = data.get("Landlord or Property Manager's Name", "")
         ws["F25"] = data.get("Landlord Phone", "")
-
-        # Employment
         ws["F27"] = data.get("Applicant's Current Employer", "")
         ws["F28"] = data.get("Employer Address", "")
         ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
         ws["F30"] = data.get("Start Date", "")
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
-
-        # Vehicle
         ws["F33"] = f"{data.get('Make', '')} {data.get('Model', '')} {data.get('Year', '')}".strip()
         ws["F34"] = data.get("Monthly Payment", "")
 
-        # Save to BytesIO
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -81,32 +69,27 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         return output, filename
 
     except Exception as e:
-        print(f"❌ Error in write_flattened_to_template: {e}")
+        print("❌ Error in write_flattened_to_template:")
+        traceback.print_exc()
         return None
 
 
-# ────────────────────────────────────────────────────────────────────────────
-#  2) Multi-applicant writer  (Tenant_Temp_Multiple.xlsx)
-# ────────────────────────────────────────────────────────────────────────────
 def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Temp_Multiple.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # Column starting letters for each applicant block
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
-        start_row  = 14  # first applicant starts here
+        start_row = 14
 
-        # Common property + rep info from first row
         first_row = df.iloc[0]
         ws["E3"] = first_row.get("Property Address", "")
         ws["E4"] = first_row.get("Move-in Date", "")
         ws["E5"] = first_row.get("Monthly Rent", "")
         ws["F10"] = first_row.get("Rep Name", "")
-        ws["J9"]  = first_row.get("Rep Phone", "")
+        ws["J9"] = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
-        # ── Per-applicant fill ───────────────────────────────────────────────
         for idx, (_, row) in enumerate(df.iterrows()):
             if idx >= len(col_starts):
                 break
@@ -115,37 +98,26 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             def write(offset, value):
                 ws[f"{col}{start_row + offset}"] = value or ""
 
-            write(0,  row.get("FullName"))
-            write(1,  row.get("Email"))
-            write(2,  row.get("PhoneNumber"))
-            write(3,  row.get("SSN"))
-            write(4,  row.get("DriverLicenseNumber"))
-            write(5,  row.get("DOB"))
-
-            # NEW – Age (row 20, offset 6)
-            write(6,  calc_age(row.get("DOB", "")))
-
-            # Children count moves down one row (row 21, offset 7)
-            write(7,  row.get("Children Count"))
-
-            # Address block (row 23 onward, offsets adjusted +1)
-            write(9,  row.get("Applicant's Current Address"))
+            write(0, row.get("FullName"))
+            write(1, row.get("Email"))
+            write(2, row.get("PhoneNumber"))
+            write(3, row.get("SSN"))
+            write(4, row.get("DriverLicenseNumber"))
+            write(5, row.get("DOB"))
+            write(6, calc_age(row.get("DOB", "")))  # Age
+            write(7, row.get("No of Children", ""))
+            write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Landlord Phone"))
-
-            # Employment block (offsets likewise +1)
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
             write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
             write(16, row.get("Start Date"))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
-
-            # Vehicle details (offsets +1)
             write(20, f"{row.get('Make', '')} {row.get('Model', '')} {row.get('Year', '')}".strip())
             write(21, row.get("Monthly Payment"))
 
-        # Save to BytesIO
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -160,5 +132,6 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         return output, filename
 
     except Exception as e:
-        print(f"❌ Error in write_multiple_applicants_to_template: {e}")
+        print("❌ Error in write_multiple_applicants_to_template:")
+        traceback.print_exc()
         return None
