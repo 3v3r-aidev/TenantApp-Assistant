@@ -1,35 +1,37 @@
-import openai
-import fitz
-import io
-from PIL import Image
-import json
 import base64
+import io
+import json
+from pathlib import Path
+from typing import List, Dict, Tuple
+
+import fitz  # PyMuPDF
+from PIL import Image
+import openai
 import streamlit as st
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
-def extract_images_from_pdf(pdf_path):
+
+def extract_images_from_pdf(pdf_path: str | Path) -> List[Image.Image]:
     images = []
-    doc = fitz.open(pdf_path)
-    for page in doc:
-        pix = page.get_pixmap(dpi=300)
-        img = Image.open(io.BytesIO(pix.tobytes("png")))
-        images.append(img)
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
+            images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
     return images
 
 
-def call_gpt_vision_api(images):
+def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+
     image_parts = []
     for img in images:
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        img_b64 = base64.b64encode(buf.getvalue()).decode()
         image_parts.append({
             "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{img_base64}"
-            }
+            "image_url": {"url": f"data:image/png;base64,{img_b64}"}
         })
 
     messages = [
@@ -41,14 +43,14 @@ def call_gpt_vision_api(images):
                 "**Required focus:** Extract accurately the following sections:\n"
                 "- C. Representation and Marketing\n"
                 "- Employment and Other Income\n"
+                "- E. Occupant Information\n"
                 "- F. Vehicle Information\n"
                 "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n\n"
-
                 "Return only this JSON format:\n"
                 "{\n"
                 '  "Property Address": string | null,\n'
                 '  "Move-in Date": string | null,\n'
-                '  "Monthly Rent": string | null, \n'
+                '  "Monthly Rent": string | null,\n'
                 '  "FullName": string | null,\n'
                 '  "PhoneNumber": string | null,\n'
                 '  "Email": string | null,\n'
@@ -65,14 +67,12 @@ def call_gpt_vision_api(images):
                 '  "Nationality": string | null,\n'
                 '  "FormSource": string | null,\n'
                 '  "ApplicationDate": string | null,\n'
-
                 '  "C.Representation and Marketing": {\n'
                 '    "Name": string | null,\n'
                 '    "Company": string | null,\n'
                 '    "E-mail": string | null,\n'
                 '    "Phone Number": string | null\n'
                 '  },\n'
-
                 '  "Employment and Other Income:": {\n'
                 '    "Applicant\'s Current Employer": string | null,\n'
                 '    "Current Employer Details": {\n'
@@ -86,7 +86,13 @@ def call_gpt_vision_api(images):
                 '    },\n'
                 '    "Child Support": string | null\n'
                 '  },\n'
-
+                '  "E. Occupant Information": [\n'
+                '    {\n'
+                '      "Name": string | null,\n'
+                '      "Relationship": string | null,\n'
+                '      "DOB": string | null\n'
+                '    }\n'
+                '  ],\n'
                 '  "F. Vehicle Information:": {\n'
                 '    "Type": string | null,\n'
                 '    "Year": string | null,\n'
@@ -95,13 +101,9 @@ def call_gpt_vision_api(images):
                 '    "Monthly Payment": string | null\n'
                 '  }\n'
                 "}"
-                "Mandatory: For email, extract information as-is and do not change anything."
             )
         },
-        {
-            "role": "user",
-            "content": image_parts
-        }
+        {"role": "user", "content": image_parts}
     ]
 
     try:
@@ -109,36 +111,53 @@ def call_gpt_vision_api(images):
             model="gpt-4o",
             messages=messages,
             temperature=0,
-            max_tokens=1000
+            max_tokens=1000,
         )
-        content = response.choices[0].message.content or ""
-        print("GPT Raw Output:", content)
-        return {"GPT_Output": content.strip()}
-    except Exception as e:
-        return {"error": str(e)}
+        return {"GPT_Output": response.choices[0].message.content.strip()}
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
-def process_pdf(pdf_path):
+def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
     images = extract_images_from_pdf(pdf_path)
-    extracted_data = call_gpt_vision_api(images)
-    return extracted_data, {}
+    return call_gpt_vision_api(images), {}
 
 
-def flatten_extracted_data(data):
+def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
+    raw = (form_data.get("GPT_Output") or "").strip()
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    parsed = json.loads(raw)
+
+    if "Occupants" in parsed and "E. Occupant Information" not in parsed:
+        parsed["E. Occupant Information"] = parsed["Occupants"]
+    if "Employment" in parsed and "Employment and Other Income:" not in parsed:
+        parsed["Employment and Other Income:"] = parsed["Employment"]
+    if "Vehicle" in parsed and "F. Vehicle Information:" not in parsed:
+        parsed["F. Vehicle Information:"] = parsed["Vehicle"]
+
+    return parsed
+
+
+def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
     employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
     rep = data.get("C.Representation and Marketing", {})
     vehicle = data.get("F. Vehicle Information:", {})
+    addr_block = data.get("Applicant's Current Address", {})
 
-    address_block = data.get("Applicant's Current Address", {})
-    if isinstance(address_block, dict):
-        address_str = address_block.get("Address", "")
-        address_phone = address_block.get("Phone:Day", "")
-        landlord_name = address_block.get("Landlord or Property Manager's Name", "")
-    else:
-        address_str = address_block
-        address_phone = ""
-        landlord_name = ""
+    address_str = addr_block.get("Address", "") if isinstance(addr_block, dict) else addr_block
+    address_phone = addr_block.get("Phone:Day", "") if isinstance(addr_block, dict) else ""
+    landlord_name = addr_block.get("Landlord or Property Manager's Name", "") if isinstance(addr_block, dict) else ""
+
+    occupants = data.get("E. Occupant Information", [])
+    occupant_count = 0
+    if isinstance(occupants, list):
+        for o in occupants:
+            if isinstance(o, dict) and any(o.get(k, "").strip() for k in ("Name", "Relationship", "DOB")):
+                occupant_count += 1
 
     flat = {
         "Property Address": data.get("Property Address", ""),
@@ -158,14 +177,10 @@ def flatten_extracted_data(data):
         "Nationality": data.get("Nationality", ""),
         "FormSource": data.get("FormSource", ""),
         "ApplicationDate": data.get("ApplicationDate", ""),
-
-        # Rep
         "Rep Name": rep.get("Name", ""),
         "Rep Company": rep.get("Company", ""),
         "Rep Email": rep.get("E-mail", ""),
         "Rep Phone": rep.get("Phone Number", ""),
-
-        # Employment
         "Applicant's Current Employer": employment.get("Applicant's Current Employer", ""),
         "Employment Verification Contact": employer_info.get("Employment Verification Contact", ""),
         "Employer Address": employer_info.get("Address", ""),
@@ -175,17 +190,15 @@ def flatten_extracted_data(data):
         "Start Date": employer_info.get("Start Date", ""),
         "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
         "Child Support": employment.get("Child Support", ""),
-
-        # Vehicle
-        "Type": vehicle.get("Type", ""),
-        "Year": vehicle.get("Year", ""),
-        "Make": vehicle.get("Make", ""),
-        "Model": vehicle.get("Model", ""),
-        "Monthly Payment": vehicle.get("Monthly Payment", "")
+        "Vehicle Type": vehicle.get("Type", ""),
+        "Vehicle Year": vehicle.get("Year", ""),
+        "Vehicle Make": vehicle.get("Make", ""),
+        "Vehicle Model": vehicle.get("Model", ""),
+        "Vehicle Monthly Payment": vehicle.get("Monthly Payment", ""),
+        "Occupant Count": occupant_count,
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
-
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
@@ -209,7 +222,13 @@ def parse_gpt_output(form_data):
         if "Representation" in parsed and "C.Representation and Marketing" not in parsed:
             parsed["C.Representation and Marketing"] = parsed["Representation"]
 
-        print("GPT Raw Output:", form_data["GPT_Output"])  # moved here
+        if "Occupants" in parsed and "E. Occupant Information" not in parsed:
+            parsed["E. Occupant Information"] = parsed["Occupants"]
+
+        if "Occupant Information" in parsed and "E. Occupant Information" not in parsed:
+            parsed["E. Occupant Information"] = parsed["Occupant Information"]
+
+        print("GPT Raw Output:", form_data["GPT_Output"])
         return parsed
 
     except json.JSONDecodeError as e:
