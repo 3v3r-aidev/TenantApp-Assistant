@@ -17,6 +17,19 @@ def calc_age(dob_str: str) -> str | int:
             continue
     return "Invalid DOB"
 
+def normalize_date(date_str: str) -> str:
+    """Normalize date to MM/DD/YYYY regardless of separator."""
+    if not date_str or not isinstance(date_str, str):
+        return ""
+    date_str = date_str.replace("-", "/").replace(".", "/").strip()
+    for fmt in ("%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d"):
+        try:
+            parsed = datetime.strptime(date_str, fmt)
+            return parsed.strftime("%m/%d/%Y")
+        except ValueError:
+            continue
+    return date_str  # fallback to original if no format matches
+
 def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
@@ -24,7 +37,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
 
         # Property section
         ws["E3"] = data.get("Property Address", "")
-        ws["E4"] = data.get("Move-in Date", "")
+        ws["E4"] = normalize_date(data.get("Move-in Date", ""))
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
         # Representative
@@ -38,7 +51,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F16"] = data.get("PhoneNumber", "")
         ws["F17"] = data.get("SSN", "")
         ws["F18"] = data.get("DriverLicenseNumber", "")
-        ws["F19"] = data.get("DOB", "")
+        ws["F19"] = normalize_date(data.get("DOB", ""))
         ws["F20"] = calc_age(data.get("DOB", ""))  # Age
         ws["F21"] = data.get("No of Occupants", "")
         ws["F22"] = data.get("No of Children", "")
@@ -48,7 +61,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F27"] = data.get("Applicant's Current Employer", "")
         ws["F28"] = data.get("Employer Address", "")
         ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
-        ws["F30"] = data.get("Start Date", "")
+        ws["F30"] = normalize_date(data.get("Start Date", ""))
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
 
@@ -88,7 +101,6 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         traceback.print_exc()
         return None
 
-
 def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Template_Multiple.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
@@ -99,7 +111,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
 
         first_row = df.iloc[0]
         ws["E3"] = first_row.get("Property Address", "")
-        ws["E4"] = first_row.get("Move-in Date", "")
+        ws["E4"] = normalize_date(first_row.get("Move-in Date", ""))
         ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
         ws["F10"] = first_row.get("Rep Name", "")
         ws["J9"] = first_row.get("Rep Phone", "")
@@ -118,7 +130,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(2, row.get("PhoneNumber"))
             write(3, row.get("SSN"))
             write(4, row.get("DriverLicenseNumber"))
-            write(5, row.get("DOB"))
+            write(5, normalize_date(row.get("DOB", "")))
             write(6, calc_age(row.get("DOB", "")))  # Age
             write(7, row.get("No of Occupants", ""))
             write(8, row.get("No of Children", ""))
@@ -128,7 +140,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
             write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
-            write(16, row.get("Start Date"))
+            write(16, normalize_date(row.get("Start Date", "")))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
@@ -167,5 +179,3 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None
-
-
