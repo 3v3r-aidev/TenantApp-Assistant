@@ -150,7 +150,7 @@ def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
     for v in vehicles:
         if not isinstance(v, dict):
             continue
-        if any(v.get(k, "").strip() for k in ["Type", "Year", "Make", "Model", "Monthly Payment"]):
+        if any(str(v.get(k, "") or "").strip() for k in ["Type", "Year", "Make", "Model", "Monthly Payment"]):
             cleaned.append(v)
     return cleaned
 
@@ -165,40 +165,30 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     address_phone = addr_block.get("Phone:Day", "") if isinstance(addr_block, dict) else ""
     landlord_name = addr_block.get("Landlord or Property Manager's Name", "") if isinstance(addr_block, dict) else ""
 
-    # Occupant and child counts
     occupants = data.get("E. Occupant Information", [])
     children_count = 0
     if not isinstance(occupants, list):
         occupants = []
-
     for o in occupants:
         if isinstance(o, dict):
-            relationship = o.get("Relationship", "").strip().lower()
+            relationship = str(o.get("Relationship", "") or "").strip().lower()
             if relationship in ("son", "daughter"):
                 children_count += 1
 
-    # Co-applicant-based occupant count
     co_applicants = data.get("Co-applicants", [])
     co_applicant_count = 0
     if isinstance(co_applicants, list):
         co_applicant_count = sum(1 for person in co_applicants if person.get("Name"))
+    total_occupants = 1 + co_applicant_count
 
-    total_occupants = 1 + co_applicant_count  # applicant + co-applicants
-
-    # Handle single or multiple vehicle entries
     vehicles = data.get("F. Vehicle Information:", [])
     if isinstance(vehicles, dict):
-        vehicles = [vehicles]  # wrap single entry
+        vehicles = [vehicles]
     elif not isinstance(vehicles, list):
         vehicles = []
-
     vehicles = clean_vehicle_data(vehicles)
 
-    vehicle_types = []
-    vehicle_years = []
-    vehicle_makes = []
-    vehicle_models = []
-    vehicle_payments = []
+    vehicle_types, vehicle_years, vehicle_makes, vehicle_models, vehicle_payments = [], [], [], [], []
     payment_floats = []
 
     for v in vehicles:
@@ -207,7 +197,6 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         make = str(v.get("Make", "") or "").strip()
         model = str(v.get("Model", "") or "").strip()
         payment = str(v.get("Monthly Payment", "") or "").strip()
-
 
         vehicle_types.append(type_)
         vehicle_years.append(year)
@@ -265,7 +254,6 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
-  
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
