@@ -140,75 +140,86 @@ def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
 
     return parsed
 
-def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
-    try:
-        wb = openpyxl.load_workbook(template_path)
-        ws = wb.active
 
-        # Property section
-        ws["E3"] = data.get("Property Address", "")
-        ws["E4"] = data.get("Move-in Date", "")
-        ws["E5"] = data.get("Monthly Rent", "")
+def flatten_extracted_data(data: Dict) -> Dict[str, str]:
+    employment = data.get("Employment and Other Income:", {})
+    employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
+    rep = data.get("C.Representation and Marketing", {})
+    addr_block = data.get("Applicant's Current Address", {})
 
-        # Representative
-        ws["F10"] = data.get("Rep Name", "")
-        ws["J9"] = data.get("Rep Phone", "")
-        ws["J10"] = data.get("Rep Email", "")
+    address_str = addr_block.get("Address", "") if isinstance(addr_block, dict) else addr_block
+    address_phone = addr_block.get("Phone:Day", "") if isinstance(addr_block, dict) else ""
+    landlord_name = addr_block.get("Landlord or Property Manager's Name", "") if isinstance(addr_block, dict) else ""
 
-        # Applicant
-        ws["F14"] = data.get("FullName", "")
-        ws["F15"] = data.get("Email", "")
-        ws["F16"] = data.get("PhoneNumber", "")
-        ws["F17"] = data.get("SSN", "")
-        ws["F18"] = data.get("DriverLicenseNumber", "")
-        ws["F19"] = data.get("DOB", "")
-        ws["F20"] = calc_age(data.get("DOB", ""))  # Age
-        ws["F21"] = data.get("No of Occupants", "")  # New line
-        ws["F22"] = data.get("No of Children", "")
-        ws["F23"] = data.get("Applicant's Current Address", "")
-        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
-        ws["F25"] = data.get("Landlord Phone", "")
-        ws["F27"] = data.get("Applicant's Current Employer", "")
-        ws["F28"] = data.get("Employer Address", "")
-        ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
-        ws["F30"] = data.get("Start Date", "")
-        ws["F31"] = data.get("Gross Monthly Income", "")
-        ws["F32"] = data.get("Position", "")
+    # Occupant and child counts
+    occupants = data.get("E. Occupant Information", [])
+    children_count = 0
+    if not isinstance(occupants, list):
+        occupants = []
 
-        vehicle_lines = [
-            f"{t} {m} {mo} {y}".strip()
-            for t, m, mo, y in zip(
-                data.get("Vehicle Type", "").split(", "),
-                data.get("Vehicle Make", "").split(", "),
-                data.get("Vehicle Model", "").split(", "),
-                data.get("Vehicle Year", "").split(", "),
-            )
-        ]
-        ws["F34"] = "\n".join(vehicle_lines)
-        ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+    for o in occupants:
+        if isinstance(o, dict):
+            relationship = o.get("Relationship", "").strip().lower()
+            if relationship in ("son", "daughter"):
+                children_count += 1
 
-        ws["F35"] = data.get("Vehicle Monthly Payment", "")  # fixed key
+    total_occupants = 1 + len(occupants)  # applicant + listed occupants
 
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
+    # Handle single or multiple vehicle entries
+    vehicles = data.get("F. Vehicle Information:", [])
+    if isinstance(vehicles, dict):
+        vehicles = [vehicles]  # wrap single entry
+    elif not isinstance(vehicles, list):
+        vehicles = []
 
-        def generate_filename(address):
-            cleaned = re.sub(r"[^\w\s]", "", str(address))
-            words = cleaned.strip().split()
-            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
-            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+    # Join multiple vehicle entries into readable strings
+    vehicle_types = ", ".join(v.get("Type", "") for v in vehicles if isinstance(v, dict))
+    vehicle_years = ", ".join(v.get("Year", "") for v in vehicles if isinstance(v, dict))
+    vehicle_makes = ", ".join(v.get("Make", "") for v in vehicles if isinstance(v, dict))
+    vehicle_models = ", ".join(v.get("Model", "") for v in vehicles if isinstance(v, dict))
+    vehicle_payments = ", ".join(v.get("Monthly Payment", "") for v in vehicles if isinstance(v, dict))
 
-        filename = generate_filename(data.get("Property Address", "tenant"))
-        return output, filename
-
-    except Exception as e:
-        print("❌ Error in write_flattened_to_template:")
-        traceback.print_exc()
-        return None
+    flat = {
+        "Property Address": data.get("Property Address", ""),
+        "Move-in Date": data.get("Move-in Date", ""),
+        "Monthly Rent": data.get("Monthly Rent", ""),
+        "FullName": data.get("FullName", ""),
+        "PhoneNumber": data.get("PhoneNumber", ""),
+        "Email": data.get("Email", ""),
+        "DOB": data.get("DOB", ""),
+        "SSN": data.get("SSN", ""),
+        "Applicant's Current Address": address_str,
+        "Landlord Phone": address_phone,
+        "Landlord or Property Manager's Name": landlord_name,
+        "IDType": data.get("IDType", ""),
+        "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
+        "IDIssuer": data.get("IDIssuer", ""),
+        "Nationality": data.get("Nationality", ""),
+        "FormSource": data.get("FormSource", ""),
+        "ApplicationDate": data.get("ApplicationDate", ""),
+        "Rep Name": rep.get("Name", ""),
+        "Rep Company": rep.get("Company", ""),
+        "Rep Email": rep.get("E-mail", ""),
+        "Rep Phone": rep.get("Phone Number", ""),
+        "Applicant's Current Employer": employment.get("Applicant's Current Employer", ""),
+        "Employment Verification Contact": employer_info.get("Employment Verification Contact", ""),
+        "Employer Address": employer_info.get("Address", ""),
+        "Employer Phone": employer_info.get("Phone", ""),
+        "Employer Email": employer_info.get("E-mail", ""),
+        "Position": employer_info.get("Position", ""),
+        "Start Date": employer_info.get("Start Date", ""),
+        "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
+        "Child Support": employment.get("Child Support", ""),
+        "Vehicle Type": vehicle_types,
+        "Vehicle Year": vehicle_years,
+        "Vehicle Make": vehicle_makes,
+        "Vehicle Model": vehicle_models,
+        "Vehicle Monthly Payment": vehicle_payments,
+        "No of Children": children_count,
+        "No of Occupants": total_occupants,
+    }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
-
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
