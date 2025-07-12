@@ -50,10 +50,11 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F15"] = data.get("Email", "")
         ws["F16"] = data.get("PhoneNumber", "")
         ws["F17"] = data.get("SSN", "")
+        ws["F21"] = data.get("No of Occupants", "")
         ws["F18"] = data.get("DriverLicenseNumber", "")
         ws["F19"] = normalize_date(data.get("DOB", ""))
         ws["F20"] = calc_age(data.get("DOB", ""))  # Age
-        ws["F21"] = data.get("No of Occupants", "")
+        ws["F21"] = str(data.get("No of Occupants", ""))
         ws["F22"] = data.get("No of Children", "")
         ws["F23"] = data.get("Applicant's Current Address", "")
         ws["F24"] = data.get("Landlord or Property Manager's Name", "")
@@ -132,7 +133,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(4, row.get("DriverLicenseNumber"))
             write(5, normalize_date(row.get("DOB", "")))
             write(6, calc_age(row.get("DOB", "")))  # Age
-            write(7, row.get("No of Occupants", ""))
+            write(7, str(row.get("No of Occupants", "")))
             write(8, row.get("No of Children", ""))
             write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
