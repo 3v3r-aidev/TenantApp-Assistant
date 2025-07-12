@@ -17,9 +17,7 @@ def calc_age(dob_str: str) -> str | int:
             continue
     return "Invalid DOB"
 
-
-
-def flatten_extracted_data(data, template_path="templates/Tenant_Template.xlsx"):
+def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
@@ -86,7 +84,6 @@ def flatten_extracted_data(data, template_path="templates/Tenant_Template.xlsx")
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None
-
 
 
 def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Template_Multiple.xlsx"):
