@@ -25,7 +25,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         # Property section
         ws["E3"] = data.get("Property Address", "")
         ws["E4"] = data.get("Move-in Date", "")
-        ws["E5"] = data.get("Monthly Rent", "")
+        ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
         # Representative
         ws["F10"] = data.get("Rep Name", "")
@@ -100,7 +100,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         first_row = df.iloc[0]
         ws["E3"] = first_row.get("Property Address", "")
         ws["E4"] = first_row.get("Move-in Date", "")
-        ws["E5"] = first_row.get("Monthly Rent", "")
+        ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
         ws["F10"] = first_row.get("Rep Name", "")
         ws["J9"] = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
