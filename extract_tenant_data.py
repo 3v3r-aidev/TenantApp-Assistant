@@ -45,7 +45,8 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 "- Employment and Other Income\n"
                 "- E. Occupant Information\n"
                 "- F. Vehicle Information\n"
-                "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n\n"
+                "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
+                "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
                 "Return only this JSON format:\n"
                 "{\n"
                 '  "Property Address": string | null,\n'
@@ -56,6 +57,8 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '  "Email": string | null,\n'
                 '  "DOB": string | null,\n'
                 '  "SSN": string | null,\n'
+                '  "Co-applicants": [\n'
+                '    {"Name": string | null, "Relationship": string | null}\n'
                 '  "Applicant\'s Current Address": {\n'
                 '    "Address": string | null,\n'
                 '    "Phone:Day": string | null,\n'
@@ -99,7 +102,8 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '    "Make": string | null,\n'
                 '    "Model": string | null,\n'
                 '    "Monthly Payment": string | null\n'
-                '  }\n'
+                '  },\n'
+                             
                 "}"
             )
         },
@@ -116,6 +120,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
         return {"GPT_Output": response.choices[0].message.content.strip()}
     except Exception as exc:
         return {"error": str(exc)}
+
 
 
 def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
@@ -163,7 +168,13 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
             if relationship in ("son", "daughter"):
                 children_count += 1
 
-    total_occupants = 1 + len(occupants)  # applicant + listed occupants
+    # Co-applicant-based occupant count
+    co_applicants = data.get("Co-applicants", [])
+    co_applicant_count = 0
+    if isinstance(co_applicants, list):
+        co_applicant_count = sum(1 for person in co_applicants if person.get("Name"))
+
+    total_occupants = 1 + co_applicant_count  # applicant + co-applicants
 
     # Handle single or multiple vehicle entries
     vehicles = data.get("F. Vehicle Information:", [])
@@ -219,7 +230,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "No of Occupants": total_occupants,
     }
 
-    return {k: ("" if v is None else v) for k, v in flat.items()}
+    return {k: ("" if v is None else v) for k, v in flat.items()}  
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
