@@ -144,6 +144,16 @@ def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
 
     return parsed
 
+def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
+    """Filter out vehicle entries where all key fields are empty or whitespace."""
+    cleaned = []
+    for v in vehicles:
+        if not isinstance(v, dict):
+            continue
+        if any(v.get(k, "").strip() for k in ["Type", "Year", "Make", "Model", "Monthly Payment"]):
+            cleaned.append(v)
+    return cleaned
+
 
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
@@ -182,6 +192,8 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     elif not isinstance(vehicles, list):
         vehicles = []
 
+    vehicles = clean_vehicle_data(vehicles)
+
     vehicle_types = []
     vehicle_years = []
     vehicle_makes = []
@@ -190,13 +202,12 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     payment_floats = []
 
     for v in vehicles:
-        if not isinstance(v, dict):
-            continue
-        type_ = v.get("Type", "").strip()
-        year = v.get("Year", "").strip()
-        make = v.get("Make", "").strip()
-        model = v.get("Model", "").strip()
-        payment = v.get("Monthly Payment", "").strip()
+        type_ = str(v.get("Type", "") or "").strip()
+        year = str(v.get("Year", "") or "").strip()
+        make = str(v.get("Make", "") or "").strip()
+        model = str(v.get("Model", "") or "").strip()
+        payment = str(v.get("Monthly Payment", "") or "").strip()
+
 
         vehicle_types.append(type_)
         vehicle_years.append(year)
