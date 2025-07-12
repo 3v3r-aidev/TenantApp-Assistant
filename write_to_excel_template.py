@@ -37,7 +37,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
 
         # Property section
         ws["E3"] = data.get("Property Address", "")
-        ws["E4"] = normalize_date(data.get("Move-in Date", ""))
+        ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
         # Representative
@@ -50,9 +50,8 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F15"] = data.get("Email", "")
         ws["F16"] = data.get("PhoneNumber", "")
         ws["F17"] = data.get("SSN", "")
-        ws["F21"] = data.get("No of Occupants", "")
         ws["F18"] = data.get("DriverLicenseNumber", "")
-        ws["F19"] = normalize_date(data.get("DOB", ""))
+        ws["F19"] = data.get("DOB", "")
         ws["F20"] = calc_age(data.get("DOB", ""))  # Age
         ws["F21"] = str(data.get("No of Occupants", ""))
         ws["F22"] = data.get("No of Children", "")
@@ -62,11 +61,11 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F27"] = data.get("Applicant's Current Employer", "")
         ws["F28"] = data.get("Employer Address", "")
         ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
-        ws["F30"] = normalize_date(data.get("Start Date", ""))
+        ws["F30"] = data.get("Start Date", "")
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
 
-        # Safe vehicle parsing and formatting
+        # Multiline vehicle info
         vehicle_types = str(data.get("Vehicle Type", "") or "").split(", ")
         vehicle_makes = str(data.get("Vehicle Make", "") or "").split(", ")
         vehicle_models = str(data.get("Vehicle Model", "") or "").split(", ")
@@ -81,7 +80,10 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         if vehicle_lines:
             ws["F34"] = "\n".join(vehicle_lines)
             ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+        else:
+            ws["F34"] = ""
 
+        # Total monthly vehicle payment
         ws["F35"] = data.get("Vehicle Monthly Payment", "")
 
         output = BytesIO()
@@ -145,7 +147,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # Safe vehicle parsing and filtering
+            # Multiline vehicle info
             vehicle_types = str(row.get("Vehicle Type", "") or "").split(", ")
             vehicle_makes = str(row.get("Vehicle Make", "") or "").split(", ")
             vehicle_models = str(row.get("Vehicle Model", "") or "").split(", ")
@@ -160,7 +162,10 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             if vehicle_lines:
                 ws[f"{col}{start_row + 20}"] = "\n".join(vehicle_lines)
                 ws[f"{col}{start_row + 20}"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+            else:
+                ws[f"{col}{start_row + 20}"] = ""
 
+            # Total monthly payment
             write(21, row.get("Vehicle Monthly Payment"))
 
         output = BytesIO()
@@ -180,3 +185,4 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None
+
