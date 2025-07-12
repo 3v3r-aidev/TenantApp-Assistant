@@ -18,26 +18,8 @@ def calc_age(dob_str: str) -> str | int:
     return "Invalid DOB"
 
 
-import openpyxl
-import re
-import traceback
-from io import BytesIO
-from datetime import datetime, date
 
-def calc_age(dob_str: str) -> str | int:
-    """Return age in years or '' if invalid/blank."""
-    if not dob_str:
-        return ""
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
-        try:
-            dob = datetime.strptime(dob_str, fmt).date()
-            today = date.today()
-            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-        except ValueError:
-            continue
-    return "Invalid DOB"
-
-def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
+def flatten_extracted_data(data, template_path="templates/Tenant_Template.xlsx"):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
