@@ -10,13 +10,8 @@ It is designed for **property managers, tenant screeners, and real estate operat
 
 ### 🔐 Secure Access Control
 
-* Enforces authentication using username/password stored in `.streamlit/secrets.toml`.
+* Enforces authentication using username/password stored in streamlit secrets.
 * Blocks unauthorized access to applicant data.
-
-### 📄 Smart PDF Uploads & Form Detection
-
-* Upload **one or more tenant applications at once**.
-* Automatically detects the application form type (Form 1, Form 2, Form 3) and routes to the correct extractor logic.
 
 ### 🧐 GPT-4o Vision Data Extraction
 
@@ -46,9 +41,9 @@ It is designed for **property managers, tenant screeners, and real estate operat
     
 * Sends follow-up emails for incomplete fields via your configured SMTP.
 
-### 📧 Automated Email Notifications
+### 📧 Optional Automated Email Notifications
 
-* Missing fields trigger emails to applicants with a list of required follow-ups.
+* Missing fields trigger email option to request applicants for missing required info
 * Emails are formatted from template and dispatched securely.
 
 ### 🚮 Auto Data Cleanup
