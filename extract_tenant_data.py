@@ -3,7 +3,6 @@ import io
 import json
 from pathlib import Path
 from typing import List, Dict, Tuple
-
 import fitz  # PyMuPDF
 from PIL import Image
 import openai
@@ -44,7 +43,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 "- C. Representation and Marketing\n"
                 "- Employment and Other Income\n"
                 "- E. Occupant Information\n"
-                "- F. Vehicle Information\n"
+                "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
                 "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
                 "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
                 "Return only this JSON format:\n"
@@ -59,6 +58,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '  "SSN": string | null,\n'
                 '  "Co-applicants": [\n'
                 '    {"Name": string | null, "Relationship": string | null}\n'
+                '  ],\n'
                 '  "Applicant\'s Current Address": {\n'
                 '    "Address": string | null,\n'
                 '    "Phone:Day": string | null,\n'
@@ -96,14 +96,15 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '      "DOB": string | null\n'
                 '    }\n'
                 '  ],\n'
-                '  "F. Vehicle Information:": {\n'
-                '    "Type": string | null,\n'
-                '    "Year": string | null,\n'
-                '    "Make": string | null,\n'
-                '    "Model": string | null,\n'
-                '    "Monthly Payment": string | null\n'
-                '  },\n'
-                             
+                '  "F. Vehicle Information:": [\n'
+                '    {\n'
+                '      "Type": string | null,\n'
+                '      "Year": string | null,\n'
+                '      "Make": string | null,\n'
+                '      "Model": string | null,\n'
+                '      "Monthly Payment": string | null\n'
+                '    }\n'
+                '  ]\n'
                 "}"
             )
         },
@@ -120,7 +121,6 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
         return {"GPT_Output": response.choices[0].message.content.strip()}
     except Exception as exc:
         return {"error": str(exc)}
-
 
 
 def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
@@ -183,12 +183,35 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     elif not isinstance(vehicles, list):
         vehicles = []
 
-    # Join multiple vehicle entries into readable strings
-    vehicle_types = ", ".join(v.get("Type", "") for v in vehicles if isinstance(v, dict))
-    vehicle_years = ", ".join(v.get("Year", "") for v in vehicles if isinstance(v, dict))
-    vehicle_makes = ", ".join(v.get("Make", "") for v in vehicles if isinstance(v, dict))
-    vehicle_models = ", ".join(v.get("Model", "") for v in vehicles if isinstance(v, dict))
-    vehicle_payments = ", ".join(v.get("Monthly Payment", "") for v in vehicles if isinstance(v, dict))
+    vehicle_types = []
+    vehicle_years = []
+    vehicle_makes = []
+    vehicle_models = []
+    vehicle_payments = []
+    payment_floats = []
+
+    for v in vehicles:
+        if not isinstance(v, dict):
+            continue
+        type_ = v.get("Type", "").strip()
+        year = v.get("Year", "").strip()
+        make = v.get("Make", "").strip()
+        model = v.get("Model", "").strip()
+        payment = v.get("Monthly Payment", "").strip()
+
+        vehicle_types.append(type_)
+        vehicle_years.append(year)
+        vehicle_makes.append(make)
+        vehicle_models.append(model)
+        vehicle_payments.append(payment)
+
+        try:
+            payment_value = float(payment.replace("$", "").replace(",", ""))
+            payment_floats.append(payment_value)
+        except:
+            pass
+
+    total_vehicle_payment = f"{sum(payment_floats):.2f}" if payment_floats else ""
 
     flat = {
         "Property Address": data.get("Property Address", ""),
@@ -199,6 +222,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Email": data.get("Email", ""),
         "DOB": data.get("DOB", ""),
         "SSN": data.get("SSN", ""),
+        "Co-applicants": co_applicants,
         "Applicant's Current Address": address_str,
         "Landlord Phone": address_phone,
         "Landlord or Property Manager's Name": landlord_name,
@@ -221,16 +245,17 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Start Date": employer_info.get("Start Date", ""),
         "Gross Monthly Income": employer_info.get("Gross Monthly Income", ""),
         "Child Support": employment.get("Child Support", ""),
-        "Vehicle Type": vehicle_types,
-        "Vehicle Year": vehicle_years,
-        "Vehicle Make": vehicle_makes,
-        "Vehicle Model": vehicle_models,
-        "Vehicle Monthly Payment": vehicle_payments,
+        "Vehicle Type": ", ".join(vehicle_types),
+        "Vehicle Year": ", ".join(vehicle_years),
+        "Vehicle Make": ", ".join(vehicle_makes),
+        "Vehicle Model": ", ".join(vehicle_models),
+        "Vehicle Monthly Payment": total_vehicle_payment,
         "No of Children": children_count,
         "No of Occupants": total_occupants,
     }
 
-    return {k: ("" if v is None else v) for k, v in flat.items()}  
+    return {k: ("" if v is None else v) for k, v in flat.items()}
+  
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
