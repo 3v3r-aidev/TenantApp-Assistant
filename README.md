@@ -9,53 +9,66 @@ It is designed for **property managers, tenant screeners, and real estate operat
 ## 🚀 Key Features & Functionalities
 
 ### 🔐 Secure Access Control
-- Enforces authentication using username/password stored in `.streamlit/secrets.toml`.
-- Blocks unauthorized access to applicant data.
 
-### 📤 Batch PDF Uploads
-- Upload and process **multiple tenant applications at once**.
-- Each PDF is read, parsed, and handled as an individual submission.
+* Enforces authentication using username/password stored in `.streamlit/secrets.toml`.
+* Blocks unauthorized access to applicant data.
 
-### 🧠 GPT-4o Vision Data Extraction
-- Uses OpenAI’s Vision API to extract structured text and form data from scanned PDFs and image-based pages.
-- Handles hybrid files containing both text-based and scanned content.
+### 📄 Smart PDF Uploads & Form Detection
 
-### 📄 Flattened Excel Export
-- Extracted data is cleaned and flattened into a structured format.
-- Appends to a session-based temporary holder file: `Template_Data_Holder.xlsx` for cumulative processing and tracking.
+* Upload **one or more tenant applications at once**.
+* Automatically detects the application form type (Form 1, Form 2, Form 3) and routes to the correct extractor logic.
 
-### 📋 Auto-Generate Formatted Excel Templates
-- Supports single and multiple applicant templates (`Tenant_Template.xlsx`, `Tenant_Template_Multiple.xlsx`).
-- Field-level accuracy ensures compatibility with downstream systems (e.g., CRM, applicant screening software).
+### 🧐 GPT-4o Vision Data Extraction
 
-### 🧾 Field Validation and Completeness Checks
-- Flags missing or malformed key fields:
-  - Social Security Number (SSN)
-  - Date of Birth
-  - Phone
-  
-- Validation report is shown in-app and automatically sends a template email to applicant/s with missing required info.
+* Uses OpenAI’s Vision API to extract structured text and form data from scanned PDFs and image-based pages.
+* Handles hybrid files containing both text-based and scanned content.
+* Dynamically flattens nested sections like: Co-applicants, Vehicle Info, Occupants.
 
-### 📧 Automated Follow-Up Emails
-- Applicants with missing info receive auto-generated email notifications.
+### 📅 Flattened Excel Holder with Field Cleaning
 
-### 🧹 Automatic File Cleanup
-- Cleans up residual data from previous runs upon each new batch upload.
-- Ensures workspace is fresh and avoids stale data issues.
+* Extracted data is cleaned and flattened into a structured format.
+* Appends to a persistent file `Template_Data_Holder.xlsx` for staging, batch preview, and Excel output.
+* All dates normalized to mm/dd/yyyy. All currency fields cleaned of `$`.
+
+### 📈 Auto-Generate Excel Templates (Single/Multiple)
+
+* Supports both `Tenant_Template.xlsx` and `Tenant_Template_Multiple.xlsx`.
+* Multiple applicants are written to offset columns; vehicle entries are wrapped per row.
+* Monthly vehicle payments are summed across vehicles.
+
+### 📊 Field Validation + Email Trigger
+
+* Auto-flags missing or malformed fields like:
+
+  * Date of Birth
+  * SSN
+  * Phone
+    
+* Sends follow-up emails for incomplete fields via your configured SMTP.
+
+### 📧 Automated Email Notifications
+
+* Missing fields trigger emails to applicants with a list of required follow-ups.
+* Emails are formatted from template and dispatched securely.
+
+### 🚮 Auto Data Cleanup
+
+* Cleans previous records in the template holder before writing a new batch.
+* Ensures stale values never appear in final Excel outputs.
 
 ---
 
 ## 🧰 Tech Stack
 
-| Component        | Description                          |
-|------------------|--------------------------------------|
-| **Streamlit**     | Frontend & control flow UI           |
-| **Python 3.13**   | Core backend logic                   |
-| **OpenAI GPT-4o** | Vision-based OCR + NLP processing    |
-| **PyMuPDF**       | PDF parsing and image rendering      |
-| **Pillow**        | Image preprocessing                  |
-| **Pandas**        | Data wrangling and Excel handling    |
-| **smtplib/email** | Sending transactional email notices  |
+| Component         | Description                         |
+| ----------------- | ----------------------------------- |
+| **Streamlit**     | Frontend & control flow UI          |
+| **Python 3.13**   | Core backend logic                  |
+| **OpenAI GPT-4o** | Vision-based OCR + NLP processing   |
+| **PyMuPDF**       | PDF parsing and image rendering     |
+| **Pillow**        | Image preprocessing                 |
+| **Pandas**        | Data wrangling and Excel handling   |
+| **smtplib/email** | Sending transactional email notices |
 
 ---
 
@@ -75,59 +88,83 @@ OPENAI_API_KEY = "sk-..."
 
 Note: Never commit this file to source control. Use Streamlit Cloud's built-in secrets manager for deployment.
 
-**📦 2. Install Requirements**
+### 📦 2. Install Requirements
+
 Install dependencies using:
+
 ```
 pip install -r requirements.txt
 ```
-Your requirements.txt should include:
 
-- streamlit
-- openai
-- pymupdf
-- Pillow
-- pandas
+Your `requirements.txt` should include:
 
-**▶️ 3. Run the Application**
+* streamlit
+* openai
+* pymupdf
+* Pillow
+* pandas
+
+### ▶️ 3. Run the Application
+
 Launch the app with:
+
 ```
 streamlit run app.py
 ```
-Visit http://localhost:8501 to interact with the UI.
 
-**📸 Screenshots**
+Visit [http://localhost:8501](http://localhost:8501) to interact with the UI.
+
+---
+
+## 📸 Screenshots
+
 <p>
-  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="400" height="400""> 
-  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/main_ui.png" alt="Main UI" width="400" height="400"> /<p>
- 
-**✅ Usage Flow**
-- Login with configured credentials.
-- Upload PDF applications (multiple allowed).
-- Extract data and auto-save to persistent Excel holder.
-- View validation status for missing/invalid fields.
-- Trigger email notices to applicants with incomplete data.
-- Download formatted Excel files per applicant for final review.
+  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="400" height="400">
+  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/main_ui.png" alt="Main UI" width="400" height="400">
+</p>
 
-**📌 Notes**
-- The file Template_Data_Holder.xlsx is auto-cleared before every new upload batch.
-- If required fields are missing, the app flags them and sends a follow-up email.
-- If all data is complete, it proceeds silently to final output.
-- GPT results are schema-enforced to ensure consistency across batches.
+---
 
-**🎯 Benefits**
-- Reduces manual effort in data extraction, validation, and email handling.
-- Improves accuracy in form field parsing using AI and schema enforcement.
-- Standardizes outputs for use in downstream tools or business workflows.
-- Scales seamlessly to handle multiple applicants per session.
-- Enables audit trail by maintaining centralized Excel data holder.
-- Improves applicant experience through timely email feedback.
+## ✅ Usage Flow
 
-**🧑‍💻 Developer Notes**
-- Use st.session_state to track current UI state and avoid re-processing on rerun.
-- Validate OpenAI Vision output against a consistent schema before Excel write.
-- Ensure PDF files are in correct layout before extraction for best results.
-- Build retry logic for OCR+Vision calls to handle API limits or latency.
+1. Login with configured credentials.
+2. Upload multiple PDF applications for a single property
+3. Save to `Template_Data_Holder.xlsx` for preview.
+4. Review validation results for missing/invalid data.
+5. Has email option to request applicants to submit required missing info
+6. Generate final Excel files for downstream review or import.
 
-**📃 License**
-- MIT License © 2025
-- Developed by Rhanny Urbis / BEST | Evercrest Homes
+---
+
+## 📌 Notes
+
+* `Template_Data_Holder.xlsx` is the live working file across batches.
+* Vehicle entries are parsed line-by-line, summed, and formatted as multi-line.
+* Dates are normalized (`MM/DD/YYYY`) and `$` symbols are stripped.
+* Co-applicants are counted toward total occupants but not treated as dependents.
+
+---
+
+## 🌟 Benefits
+
+* ✅ Reduces manual errors and copy-paste.
+* ✅ Ensures field completeness and consistency.
+* ✅ Leverages GPT Vision for complex document OCR.
+* ✅ Streamlines form-to-Excel transformation.
+* ✅ Enables automated communication with applicants.
+
+---
+
+## 👨‍💼 Developer Notes
+
+* Uses `st.session_state` to persist extraction state.
+* Excel write logic supports variable vehicle count and multi-applicant forms.
+* GPT schema is enforced to avoid hallucinated fields.
+* Date and currency fields are always normalized before writing.
+
+---
+
+## 📃 License
+
+MIT License © 2025
+Developed by Rhanny Urbis / BEST | Evercrest Homes
