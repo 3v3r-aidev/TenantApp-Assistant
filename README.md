@@ -114,7 +114,7 @@ Visit [http://localhost:8501](http://localhost:8501) to interact with the UI.
 ## 📸 Screenshots
 
 <p>
-  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="500" height="500">
+  <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="500" height="500"> 
 </p>
 
 ---
