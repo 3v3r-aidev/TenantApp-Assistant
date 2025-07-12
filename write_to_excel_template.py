@@ -40,7 +40,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F18"] = data.get("DriverLicenseNumber", "")
         ws["F19"] = data.get("DOB", "")
         ws["F20"] = calc_age(data.get("DOB", ""))  # Age
-        ws["F21"] = data.get("No of Occupants", "")  # New field added
+        ws["F21"] = data.get("No of Occupants", "")
         ws["F22"] = data.get("No of Children", "")
         ws["F23"] = data.get("Applicant's Current Address", "")
         ws["F24"] = data.get("Landlord or Property Manager's Name", "")
@@ -52,20 +52,23 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["F31"] = data.get("Gross Monthly Income", "")
         ws["F32"] = data.get("Position", "")
 
-        # Vehicle info - multiline format
+        # Safe vehicle parsing and formatting
+        vehicle_types = str(data.get("Vehicle Type", "") or "").split(", ")
+        vehicle_makes = str(data.get("Vehicle Make", "") or "").split(", ")
+        vehicle_models = str(data.get("Vehicle Model", "") or "").split(", ")
+        vehicle_years = str(data.get("Vehicle Year", "") or "").split(", ")
+
         vehicle_lines = [
             f"{t} {m} {mo} {y}".strip()
-            for t, m, mo, y in zip(
-                data.get("Vehicle Type", "").split(", "),
-                data.get("Vehicle Make", "").split(", "),
-                data.get("Vehicle Model", "").split(", "),
-                data.get("Vehicle Year", "").split(", "),
-            )
+            for t, m, mo, y in zip(vehicle_types, vehicle_makes, vehicle_models, vehicle_years)
+            if any([t.strip(), m.strip(), mo.strip(), y.strip()])
         ]
-        ws["F34"] = "\n".join(vehicle_lines)
-        ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-        ws["F35"] = data.get("Vehicle Monthly Payment", "")  # Corrected key name
+        if vehicle_lines:
+            ws["F34"] = "\n".join(vehicle_lines)
+            ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+
+        ws["F35"] = data.get("Vehicle Monthly Payment", "")
 
         output = BytesIO()
         wb.save(output)
@@ -117,7 +120,7 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(4, row.get("DriverLicenseNumber"))
             write(5, row.get("DOB"))
             write(6, calc_age(row.get("DOB", "")))  # Age
-            write(7, row.get("No of Occupants", ""))  # New line
+            write(7, row.get("No of Occupants", ""))
             write(8, row.get("No of Children", ""))
             write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
@@ -129,17 +132,21 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
+            # Safe vehicle parsing and filtering
+            vehicle_types = str(row.get("Vehicle Type", "") or "").split(", ")
+            vehicle_makes = str(row.get("Vehicle Make", "") or "").split(", ")
+            vehicle_models = str(row.get("Vehicle Model", "") or "").split(", ")
+            vehicle_years = str(row.get("Vehicle Year", "") or "").split(", ")
+
             vehicle_lines = [
                 f"{t} {m} {mo} {y}".strip()
-                for t, m, mo, y in zip(
-                    row.get("Vehicle Type", "").split(", "),
-                    row.get("Vehicle Make", "").split(", "),
-                    row.get("Vehicle Model", "").split(", "),
-                    row.get("Vehicle Year", "").split(", "),
-                )
+                for t, m, mo, y in zip(vehicle_types, vehicle_makes, vehicle_models, vehicle_years)
+                if any([t.strip(), m.strip(), mo.strip(), y.strip()])
             ]
-            ws[f"{col}{start_row + 20}"] = "\n".join(vehicle_lines)
-            ws[f"{col}{start_row + 20}"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+
+            if vehicle_lines:
+                ws[f"{col}{start_row + 20}"] = "\n".join(vehicle_lines)
+                ws[f"{col}{start_row + 20}"].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
             write(21, row.get("Vehicle Monthly Payment"))
 
@@ -160,4 +167,5 @@ def write_multiple_applicants_to_template(df, template_path="templates/Tenant_Te
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None
+
 
