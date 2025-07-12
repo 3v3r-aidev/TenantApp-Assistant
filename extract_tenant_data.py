@@ -122,7 +122,6 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     except Exception as exc:
         return {"error": str(exc)}
 
-
 def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
     images = extract_images_from_pdf(pdf_path)
     return call_gpt_vision_api(images), {}
