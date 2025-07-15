@@ -64,6 +64,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '    "Address": string | null,\n'
                 '    "Phone:Day": string | null,\n'
                 '    "Landlord or Property Manager\'s Name": string | null\n'
+                '    "Rent": string | null\n'
                 '  },\n'
                 '  "IDType": string | null,\n'
                 '  "DriverLicenseNumber": string | null,\n'
