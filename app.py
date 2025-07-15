@@ -103,7 +103,7 @@ else:
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 SINGLE_TEMPLATE_PATH = "templates/Tenant_Template.xlsx"
 MULTIPLE_TEMPLATE_PATH = "templates/Tenant_Template_Multiple.xlsx"
-SUMMARY_TEMPLATE_PATH ="template/App_Summary_Template.xlsx"
+SUMMARY_TEMPLATE_PATH ="templates/App_Summary_Template.xlsx"
 
 st.sidebar.title("Navigation")
 st.title(" Tenant Application Assistant")
