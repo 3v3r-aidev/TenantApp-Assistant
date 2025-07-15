@@ -133,7 +133,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
     except Exception as e:
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
-        return None
+        return None, None
 
 
 def write_multiple_applicants_to_template(
@@ -234,7 +234,7 @@ def write_multiple_applicants_to_template(
     except Exception as e:
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
-        return None
+        return None, None
 
 
 
