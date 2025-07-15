@@ -301,7 +301,21 @@ def write_to_summary_template(
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
     net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-    # Field-to-cell map 
+    # Format vehicle and animal details safely
+    vehicle_details = flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))
+    if isinstance(vehicle_details, list):
+        vehicle_details = "\n".join([str(v).strip() for v in vehicle_details if v])
+    elif not isinstance(vehicle_details, str):
+        vehicle_details = ""
+
+    animal_details = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+    if isinstance(flat_data.get("G. Animals"), list):
+        animals = flat_data["G. Animals"]
+        animal_details = "\n".join([str(a).strip() for a in animals if a]) if animals else ""
+    elif not isinstance(animal_details, str):
+        animal_details = ""
+
+    # Field-to-cell map
     write_map = {
         "Address": ("B2", flat_data.get("Property Address", "")),
         "Rent": ("B3", flat_data.get("Monthly Rent", "")),
@@ -311,14 +325,13 @@ def write_to_summary_template(
         "No Of Occupants": ("B7", flat_data.get("No of Occupants", "")),
         "Current Rent": ("B8", flat_data.get("Rent", "")),
         "Employment": ("B9", flat_data.get("Applicant's Current Employer", "")),
-
-        # ✅ Cars and Pets now use fully detailed strings from flattened data
-        "Cars": ("B12", flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))),
-        "Pets": ("B13", flat_data.get("Animal Details", flat_data.get("No of Animals", ""))),
+        "Cars": ("B12", vehicle_details),
+        "Pets": ("B13", animal_details),
     }
 
     for _, (cell, value) in write_map.items():
         ws[cell] = value
 
     wb.save(output_path)
+
 
