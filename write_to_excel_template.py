@@ -7,8 +7,8 @@ from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
 
+
 def calc_age(dob_str: str) -> str | int:
-    """Return age in years or '' if invalid/blank."""
     if not dob_str:
         return ""
     for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
@@ -20,18 +20,6 @@ def calc_age(dob_str: str) -> str | int:
             continue
     return "Invalid DOB"
 
-def normalize_date(date_str: str) -> str:
-    """Normalize date to MM/DD/YYYY regardless of separator."""
-    if not date_str or not isinstance(date_str, str):
-        return ""
-    date_str = date_str.replace("-", "/").replace(".", "/").strip()
-    for fmt in ("%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d"):
-        try:
-            parsed = datetime.strptime(date_str, fmt)
-            return parsed.strftime("%m/%d/%Y")
-        except ValueError:
-            continue
-    return date_str  # fallback to original if no format matches
 
 def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
     try:
@@ -55,7 +43,100 @@ def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
         print("❌ Error in lookup_property_info:", e)
         return None, None
 
-def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx"):
+
+def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx", summary_header=None):
+    try:
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
+
+        # Property section
+        property_address = data.get("Property Address", "")
+        ws.oddHeader.left.text = property_address  # Left header
+        ws["E3"] = property_address
+        ws["E4"] = data.get("Move-in Date", "")
+        ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
+
+        # Write to center header (line 3 only, if summary_header is passed)
+        if summary_header:
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
+            center_header = "\n".join(lines[:2] + [f"Date={summary_header}"])
+            ws.oddHeader.center.text = center_header
+
+        # PropertyInfo lookup
+        p_number, sqft = lookup_property_info(property_address)
+        if p_number:
+            ws["G3"] = p_number
+        if sqft:
+            ws["G7"] = sqft
+
+        # Representative
+        ws["F10"] = data.get("Rep Name", "")
+        ws["J9"] = data.get("Rep Phone", "")
+        ws["J10"] = data.get("Rep Email", "")
+
+        # Applicant
+        ws["F14"] = data.get("FullName", "")
+        ws["F15"] = data.get("Email", "")
+        ws["F16"] = data.get("PhoneNumber", "")
+        ws["F17"] = data.get("SSN", "")
+        ws["F18"] = data.get("DriverLicenseNumber", "")
+        ws["F19"] = data.get("DOB", "")
+        ws["F20"] = calc_age(data.get("DOB", ""))
+        ws["F21"] = str(data.get("No of Occupants", ""))
+        ws["F22"] = data.get("No of Children", "")
+        ws["F23"] = data.get("Applicant's Current Address", "")
+        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
+        ws["F25"] = data.get("Landlord Phone", "")
+        ws["F27"] = data.get("Applicant's Current Employer", "")
+        ws["F28"] = data.get("Employer Address", "")
+        ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
+        ws["F30"] = data.get("Start Date", "")
+        ws["F31"] = data.get("Gross Monthly Income", "")
+        ws["F32"] = data.get("Position", "")
+
+        # Multiline vehicle info
+        vehicle_types = str(data.get("Vehicle Type", "") or "").split(", ")
+        vehicle_makes = str(data.get("Vehicle Make", "") or "").split(", ")
+        vehicle_models = str(data.get("Vehicle Model", "") or "").split(", ")
+        vehicle_years = str(data.get("Vehicle Year", "") or "").split(", ")
+
+        vehicle_lines = [
+            f"{t} {m} {mo} {y}".strip()
+            for t, m, mo, y in zip(vehicle_types, vehicle_makes, vehicle_models, vehicle_years)
+            if any([t.strip(), m.strip(), mo.strip(), y.strip()])
+        ]
+
+        if vehicle_lines:
+            ws["F34"] = "\n".join(vehicle_lines)
+            ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+        else:
+            ws["F34"] = ""
+
+        # Total vehicle monthly payment
+        ws["F35"] = data.get("Vehicle Monthly Payment", "")
+
+        # Save to buffer
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        def generate_filename(address):
+            cleaned = re.sub(r"[^\w\s]", "", str(address))
+            words = cleaned.strip().split()
+            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+
+        filename = generate_filename(property_address)
+        return output, filename
+
+    except Exception as e:
+        print("❌ Error in write_flattened_to_template:")
+        traceback.print_exc()
+        return None
+
+
+def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx", summary_header=None):
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
@@ -66,6 +147,13 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
+
+        # Center header update (line 3 only)
+        if summary_header:
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
+            updated_center_header = "\n".join(lines[:2] + [f"Date={summary_header}"])
+            ws.oddHeader.center.text = updated_center_header
 
         # PropertyInfo lookup and write to G3 and G7
         p_number, sqft = lookup_property_info(property_address)
@@ -138,6 +226,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         traceback.print_exc()
         return None
 
+
 def write_to_summary_template(
     flat_data: dict,
     output_path: str | Path,
@@ -188,23 +277,24 @@ def write_to_summary_template(
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
     net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-    # Field-to-cell map (Rent = B4 and B9)
+    # Field-to-cell map 
     write_map = {
-        "App": ("B2", flat_data.get("FullName", "")),
-        "Address": ("B3", flat_data.get("Property Address", "")),
-        "Rent": ("B4", flat_data.get("Monthly Rent", "")),
-        "Move-in date": ("B5", flat_data.get("Move-in Date", "")),
-        "Application Fee": ("B6", flat_data.get("Application Fee", "")),
-        "Gross/Net Ratio": ("B7", gross_ratio),        # B7 = Gross Ratio
-        "Net Ratio": ("B15", net_ratio),               # B15 = Net Ratio (you can move this)
-        "Number Of Occupants": ("B8", flat_data.get("No of Occupants", "")),
-        "Rent (again)": ("B9", flat_data.get("Monthly Rent", "")),
-        "Employment": ("B10", flat_data.get("Applicant's Current Employer", "")),
-        "Cars": ("B13", flat_data.get("Vehicle Make", "")),
-        "Pets": ("B14", flat_data.get("No of Animals", "")),
+        "Address": ("B2", flat_data.get("Property Address", "")),
+        "Rent": ("B3", flat_data.get("Monthly Rent", "")),
+        "Move-in date": ("B4", flat_data.get("Move-in Date", "")),
+        "Application Fee": ("B5", flat_data.get("Application Fee", "")),
+        "Gross/Net Ratio": ("B6", f"{gross_ratio}/{net_ratio}"),
+        "No Of Occupants": ("B7", flat_data.get("No of Occupants", "")),
+        "Current Rent": ("B8", flat_data.get("Rent", "")),
+        "Employment": ("B9", flat_data.get("Applicant's Current Employer", "")),
+
+        # ✅ Cars and Pets now use fully detailed strings from flattened data
+        "Cars": ("B12", flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))),
+        "Pets": ("B13", flat_data.get("Animal Details", flat_data.get("No of Animals", ""))),
     }
 
     for _, (cell, value) in write_map.items():
         ws[cell] = value
 
     wb.save(output_path)
+
