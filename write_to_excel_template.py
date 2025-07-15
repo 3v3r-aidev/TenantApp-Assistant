@@ -43,6 +43,15 @@ def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
         print("❌ Error in lookup_property_info:", e)
         return None, None
 
+def normalize_date(date_str):
+    if not date_str:
+        return ""
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(date_str, fmt).strftime("%m/%d/%Y")
+        except ValueError:
+            continue
+    return date_str  # fallback to original if parsing fails
 
 def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx", summary_header=None):
     try:
