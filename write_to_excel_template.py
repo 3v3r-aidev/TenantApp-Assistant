@@ -1,6 +1,9 @@
 import openpyxl
 import re
 import traceback
+from openpyxl import load_workbook
+from datetime import datetime
+from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
 
@@ -134,3 +137,74 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None
+
+def write_to_summary_template(
+    flat_data: dict,
+    output_path: str | Path,
+    summary_template_path: str | Path = "App_Summary_Template.xlsx",
+) -> None:
+    wb = load_workbook(summary_template_path)
+    ws = wb.active
+
+    # Counter logic with forced test-mode = 636
+    meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
+    if "_Meta" not in wb.sheetnames:
+        wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
+        meta_ws.sheet_state = "hidden"
+        meta_ws["A1"] = "counter"
+
+    TEST_MODE = True
+    TEST_START_VALUE = 636
+    counter = TEST_START_VALUE if TEST_MODE else (meta_ws["B1"].value or TEST_START_VALUE) + 1
+    meta_ws["B1"] = counter
+
+    ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
+
+    # Monthly Rent (denominator)
+    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
+    try:
+        rent = float(rent_str) if rent_str else 0
+    except ValueError:
+        rent = 0
+
+    # Gross Monthly Income: Primary
+    gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
+    try:
+        gross = float(gross_str) if gross_str else 0
+    except ValueError:
+        gross = 0
+
+    # Net Income = sum of all applicant gross income
+    co_applicants = flat_data.get("Co-applicants", [])
+    co_gross_total = 0
+    for applicant in co_applicants:
+        value = str(applicant.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+        try:
+            co_gross_total += float(value) if value else 0
+        except:
+            continue
+    net_total = gross + co_gross_total
+
+    gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+    net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+
+    # Field-to-cell map (Rent = B4 and B9)
+    write_map = {
+        "App": ("B2", flat_data.get("FullName", "")),
+        "Address": ("B3", flat_data.get("Property Address", "")),
+        "Rent": ("B4", flat_data.get("Monthly Rent", "")),
+        "Move-in date": ("B5", flat_data.get("Move-in Date", "")),
+        "Application Fee": ("B6", flat_data.get("Application Fee", "")),
+        "Gross/Net Ratio": ("B7", gross_ratio),        # B7 = Gross Ratio
+        "Net Ratio": ("B15", net_ratio),               # B15 = Net Ratio (you can move this)
+        "Number Of Occupants": ("B8", flat_data.get("No of Occupants", "")),
+        "Rent (again)": ("B9", flat_data.get("Monthly Rent", "")),
+        "Employment": ("B10", flat_data.get("Applicant's Current Employer", "")),
+        "Cars": ("B13", flat_data.get("Vehicle Make", "")),
+        "Pets": ("B14", flat_data.get("No of Animals", "")),
+    }
+
+    for _, (cell, value) in write_map.items():
+        ws[cell] = value
+
+    wb.save(output_path)
