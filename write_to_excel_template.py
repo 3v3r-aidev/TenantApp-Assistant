@@ -60,43 +60,74 @@ def write_flattened_to_template(
     template_path="templates/Tenant_Template.xlsx",
     summary_header=None,
 ):
-    """
-    Writes a single applicant’s flattened data into Tenant_Template.xlsx.
-    """
-
     try:
-        # ── Debug: show incoming data type ─────────────────────────────────────
-        print("🔍 Type of incoming `data`:", type(data))
-        print("🔍 Preview of `data`:", data if isinstance(data, str) else list(data.keys()))
-
-        # ── Safe type conversion ───────────────────────────────────────────────
-        if isinstance(data, dict):
-            pass
-        elif hasattr(data, "to_dict"):
-            data = data.to_dict()
-        else:
-            raise TypeError(
-                f"write_flattened_to_template expected dict/Series, got {type(data)}"
-            )
-
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # ── Property section ───────────────────────────────────────────────────
+        # ── Property Info ─────────────────────────────────────────────
         property_address = data.get("Property Address", "")
         ws.oddHeader.left.text = property_address
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
-        # ── Optional summary header ────────────────────────────────────────────
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            lines = (existing.split("\n")[:2]) + [f"Date={summary_header}"]
-            ws.oddHeader.center.text = "\n".join(lines)
+            lines = existing.split("\n")
+            ws.oddHeader.center.text = "\n".join(lines[:2] + [f"Date={summary_header}"])
 
-        # … Continue with the rest of your logic (applicant info, vehicles, etc.)
+        # ── PropertyInfo Lookup ──────────────────────────────────────
+        p_number, sqft = lookup_property_info(property_address)
+        if p_number: ws["G3"] = p_number
+        if sqft:     ws["G7"] = sqft
 
+        # ── Representative ──────────────────────────────────────────
+        ws["F10"] = data.get("Rep Name", "")
+        ws["J9"]  = data.get("Rep Phone", "")
+        ws["J10"] = data.get("Rep Email", "")
+
+        # ── Applicant Info ──────────────────────────────────────────
+        ws["F14"] = data.get("FullName", "")
+        ws["F15"] = data.get("Email", "")
+        ws["F16"] = data.get("PhoneNumber", "")
+        ws["F17"] = data.get("SSN", "")
+        ws["F18"] = data.get("DriverLicenseNumber", "")
+        ws["F19"] = data.get("DOB", "")
+        ws["F20"] = calc_age(data.get("DOB", ""))
+        ws["F21"] = str(data.get("No of Occupants", ""))
+        ws["F22"] = data.get("No of Children", "")
+        ws["F23"] = data.get("Applicant's Current Address", "")
+        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
+        ws["F25"] = data.get("Landlord Phone", "")
+        ws["F27"] = data.get("Applicant's Current Employer", "")
+        ws["F28"] = data.get("Employer Address", "")
+        ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
+        ws["F30"] = data.get("Start Date", "")
+        ws["F31"] = data.get("Gross Monthly Income", "")
+        ws["F32"] = data.get("Position", "")
+
+        # ── Vehicle Info (All Vehicles) ──────────────────────────────
+        v_types  = str(data.get("Vehicle Type", "")  or "").split(",")
+        v_makes  = str(data.get("Vehicle Make", "")  or "").split(",")
+        v_models = str(data.get("Vehicle Model", "") or "").split(",")
+        v_years  = str(data.get("Vehicle Year", "")  or "").split(",")
+
+        vehicle_lines = [
+            f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
+            for t, m, mo, y in zip(v_types, v_makes, v_models, v_years)
+            if any([t.strip(), m.strip(), mo.strip(), y.strip()])
+        ]
+        ws["F34"] = "\n".join(vehicle_lines) if vehicle_lines else ""
+        ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+
+        # ── Vehicle Monthly Payment (Sum or single) ─────────────────
+        v_payments = str(data.get("Vehicle Monthly Payment", "")).split(",")
+        cleaned_values = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
+        numeric_values = [float(p) for p in cleaned_values if p.replace(".", "", 1).isdigit()]
+        total_payment = sum(numeric_values)
+        ws["F35"] = total_payment if len(numeric_values) > 1 else (numeric_values[0] if numeric_values else "")
+
+        # ── Save to BytesIO ─────────────────────────────────────────
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -104,20 +135,16 @@ def write_flattened_to_template(
         def generate_filename(address):
             cleaned = re.sub(r"[^\w\s]", "", str(address))
             words = cleaned.strip().split()
-            word_part = (
-                "_".join(words[1:3]) if len(words) >= 3
-                else "_".join(words[:2]) if len(words) >= 2
-                else "tenant"
-            )
+            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
             return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
-        filename = generate_filename(property_address)
-        return output, filename
+        return output, generate_filename(property_address)
 
     except Exception:
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
@@ -191,22 +218,28 @@ def write_multiple_applicants_to_template(
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            v_types = str(row.get("Vehicle Type", "") or "").split(", ")
-            v_makes = str(row.get("Vehicle Make", "") or "").split(", ")
-            v_models = str(row.get("Vehicle Model", "") or "").split(", ")
-            v_years = str(row.get("Vehicle Year", "") or "").split(", ")
+            # Vehicle info (multi-line)
+            v_types  = str(row.get("Vehicle Type", "")  or "").split(",")
+            v_makes  = str(row.get("Vehicle Make", "")  or "").split(",")
+            v_models = str(row.get("Vehicle Model", "") or "").split(",")
+            v_years  = str(row.get("Vehicle Year", "")  or "").split(",")
 
             vehicle_lines = [
-                f"{t} {m} {mo} {y}".strip()
+                f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
                 for t, m, mo, y in zip(v_types, v_makes, v_models, v_years)
                 if any([t.strip(), m.strip(), mo.strip(), y.strip()])
             ]
 
-            target = f"{col}{start_row + 20}"
-            ws[target] = "\n".join(vehicle_lines) if vehicle_lines else ""
-            ws[target].alignment = openpyxl.styles.Alignment(wrap_text=True)
+            vehicle_cell = f"{col}{start_row + 20}"
+            ws[vehicle_cell] = "\n".join(vehicle_lines) if vehicle_lines else ""
+            ws[vehicle_cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-            write(21, row.get("Vehicle Monthly Payment"))
+            # Vehicle Monthly Payment (sum or single)
+            v_payments = str(row.get("Vehicle Monthly Payment", "")).split(",")
+            cleaned_vals = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
+            numeric_vals = [float(p) for p in cleaned_vals if p.replace(".", "", 1).isdigit()]
+            total_payment = sum(numeric_vals) if len(numeric_vals) > 1 else (numeric_vals[0] if numeric_vals else "")
+            write(21, total_payment)
 
         output = BytesIO()
         wb.save(output)
