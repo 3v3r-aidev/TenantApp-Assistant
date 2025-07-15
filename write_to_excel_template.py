@@ -73,6 +73,7 @@ def write_flattened_to_template(
     summary_header=None,
 ):
     try:
+        data = normalize_all_dates(data)
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
@@ -170,6 +171,7 @@ def write_multiple_applicants_to_template(
     Writes up to 10 applicants into Tenant_Template_Multiple.xlsx.
     """
     try:
+        data = normalize_all_dates(data)
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
@@ -294,7 +296,7 @@ def write_to_summary_template(
             f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
         )
     # ───────────────────────────────────────────────────────────────────────────
-
+    data = normalize_all_dates(data)
     wb = load_workbook(summary_template_path)
     ws = wb.active
 
