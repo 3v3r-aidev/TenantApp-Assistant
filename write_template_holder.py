@@ -16,7 +16,7 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
         "Rep Name", "Rep Company", "Rep Email", "Rep Phone",
         "Applicant's Current Employer", "Employment Verification Contact", "Employer Address",
         "Employer Phone", "Employer Email", "Position", "Start Date", "Gross Monthly Income",
-        "Child Support", "Vehicle Type", "Vehicle Year", "Vehicle Make", "Vehicle Model", "Vehicle Monthly Payment"
+        "Child Support", "No of Animals", "Vehicle Type", "Vehicle Year", "Vehicle Make", "Vehicle Model", "Vehicle Monthly Payment"
     ]
 
     df_new = pd.DataFrame([data_dict])
