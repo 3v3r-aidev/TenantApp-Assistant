@@ -62,52 +62,40 @@ def write_flattened_to_template(
 ):
     """
     Writes a single applicant’s flattened data into Tenant_Template.xlsx.
-
-    Parameters
-    ----------
-    data : dict or pandas Series/DataFrame row
-        Flattened applicant data. Must support .get().
-    template_path : str
-        Path to the Excel template.
-    summary_header : str | None
-        If provided, appended as `Date=<summary_header>` on line-3
-        of the centre header.
     """
 
     try:
+        # ── Debug: show incoming data type ─────────────────────────────────────
         print("🔍 Type of incoming `data`:", type(data))
         print("🔍 Preview of `data`:", data if isinstance(data, str) else list(data.keys()))
-    try:
-        # ── NEW: strict validation before using .get() ──────────────────────────
+
+        # ── Safe type conversion ───────────────────────────────────────────────
         if isinstance(data, dict):
-            pass                                  # already fine
+            pass
         elif hasattr(data, "to_dict"):
-            data = data.to_dict()                 # e.g. Series / DataFrame row
+            data = data.to_dict()
         else:
             raise TypeError(
                 f"write_flattened_to_template expected dict/Series, got {type(data)}"
             )
-        # ────────────────────────────────────────────────────────────────────────
 
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # Property section
+        # ── Property section ───────────────────────────────────────────────────
         property_address = data.get("Property Address", "")
         ws.oddHeader.left.text = property_address
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
-        # Optional centre-header line-3
+        # ── Optional summary header ────────────────────────────────────────────
         if summary_header:
             existing = ws.oddHeader.center.text or ""
             lines = (existing.split("\n")[:2]) + [f"Date={summary_header}"]
             ws.oddHeader.center.text = "\n".join(lines)
 
-        # … everything else unchanged …
-        # lookup_property_info(), representative, applicant fields, vehicles,
-        # save to BytesIO …
+        # … Continue with the rest of your logic (applicant info, vehicles, etc.)
 
         output = BytesIO()
         wb.save(output)
@@ -130,7 +118,6 @@ def write_flattened_to_template(
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
-
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
