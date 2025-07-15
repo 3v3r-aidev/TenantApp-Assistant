@@ -6,7 +6,7 @@ import base64
 from datetime import datetime
 import re
 from extract_tenant_data import flatten_extracted_data, parse_gpt_output, process_pdf
-from write_to_excel_template import write_multiple_applicants_to_template
+from write_to_excel_template import write_multiple_applicants_to_template, write_flattened_to_template, write_to_summary_template
 from write_template_holder import write_to_template_holder
 from email.message import EmailMessage
 from email_ui import render_email_ui
