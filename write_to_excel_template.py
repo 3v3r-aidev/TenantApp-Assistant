@@ -42,15 +42,27 @@ def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
         print("❌ Error in lookup_property_info:", e)
         return None, None
 
-def normalize_date(date_str):
-    if not date_str:
-        return ""
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
+def normalize_date_string(date_str):
+    if not isinstance(date_str, str):
+        return date_str
+    clean = re.sub(r"[-.]", "/", date_str.strip())
+    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%d/%m/%y", "%Y/%m/%d", "%Y/%d/%m"):
         try:
-            return datetime.strptime(date_str, fmt).strftime("%m/%d/%Y")
+            return datetime.strptime(clean, fmt).strftime("%m/%d/%Y")
         except ValueError:
             continue
-    return date_str  # fallback to original if parsing fails
+    return date_str
+
+def normalize_all_dates(data):
+    def is_date_field(k): return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
+    def normalize(obj):
+        if isinstance(obj, dict):
+            return {k: normalize_date_string(v) if is_date_field(k) else normalize(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [normalize(i) for i in obj]
+        return obj
+    return normalize(data)
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 1. write_flattened_to_template  (adds strict input-type guard)
@@ -359,25 +371,3 @@ def write_to_summary_template(
 
     wb.save(output_path)
 
-# ---------------------------------------------------------------------------
-# UNIVERSAL PRE-PROCESSOR
-# ---------------------------------------------------------------------------
-
-def prepare_applicant_data(raw):
-    """
-    Accepts:
-        • dict,
-        • pandas Series,
-        • or any object with `.to_dict()`.
-    Returns:
-        A flat dict with every date-like field normalized to MM/DD/YYYY.
-    """
-    # 1) Ensure we’re working with a plain dictionary
-    if hasattr(raw, "to_dict"):          # Series / DataFrame row
-        raw = raw.to_dict()
-
-    if not isinstance(raw, dict):
-        raise TypeError("prepare_applicant_data expects a dict-like object")
-
-    # 2) Normalize every date field (uses your existing helper)
-    return normalize_all_dates(raw)
