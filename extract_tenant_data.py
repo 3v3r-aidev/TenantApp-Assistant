@@ -44,6 +44,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 "- Employment and Other Income\n"
                 "- E. Occupant Information\n"
                 "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
+                "- G. Animals (list if \"Will any animals be kept on the Property?\" is \"Yes\")\n"
                 "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
                 "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
                 "Return only this JSON format:\n"
@@ -104,6 +105,16 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '      "Model": string | null,\n'
                 '      "Monthly Payment": string | null\n'
                 '    }\n'
+                '  ],\n'
+                '  "G. Animals": [\n'
+                '    {\n'
+                '      "Type and Breed": string | null,\n'
+                '      "Name": string | null,\n'
+                '      "Color": string | null,\n'
+                '      "Weight": string | null,\n'
+                '      "Age in Yrs": string | null,\n'
+                '      "Gender": string | null\n'
+                '    }\n'
                 '  ]\n'
                 "}"
             )
@@ -121,6 +132,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
         return {"GPT_Output": response.choices[0].message.content.strip()}
     except Exception as exc:
         return {"error": str(exc)}
+
 
 def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
     images = extract_images_from_pdf(pdf_path)
@@ -141,8 +153,11 @@ def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
         parsed["Employment and Other Income:"] = parsed["Employment"]
     if "Vehicle" in parsed and "F. Vehicle Information:" not in parsed:
         parsed["F. Vehicle Information:"] = parsed["Vehicle"]
+    if "Animals" in parsed and "G. Animals" not in parsed:
+        parsed["G. Animals"] = parsed["Animals"]
 
     return parsed
+
 
 def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
     """Filter out vehicle entries where all key fields are empty or whitespace."""
@@ -212,6 +227,22 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
 
     total_vehicle_payment = f"{sum(payment_floats):.2f}" if payment_floats else ""
 
+    # ---- Animals processing ----
+    animals = data.get("G. Animals", [])
+    if isinstance(animals, dict):
+        animals = [animals]
+    elif not isinstance(animals, list):
+        animals = []
+
+    cleaned_animals = []
+    for a in animals:
+        if not isinstance(a, dict):
+            continue
+        if any(str(a.get(k, "") or "").strip() for k in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"]):
+            cleaned_animals.append(a)
+    no_of_animals = len(cleaned_animals)
+    # ----------------------------
+
     flat = {
         "Property Address": data.get("Property Address", ""),
         "Move-in Date": data.get("Move-in Date", ""),
@@ -251,9 +282,11 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Vehicle Monthly Payment": total_vehicle_payment,
         "No of Children": children_count,
         "No of Occupants": total_occupants,
+        "No of Animals": no_of_animals,
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
+
 
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
@@ -282,6 +315,9 @@ def parse_gpt_output(form_data):
 
         if "Occupant Information" in parsed and "E. Occupant Information" not in parsed:
             parsed["E. Occupant Information"] = parsed["Occupant Information"]
+
+        if "Animals" in parsed and "G. Animals" not in parsed:
+            parsed["G. Animals"] = parsed["Animals"]
 
         print("GPT Raw Output:", form_data["GPT_Output"])
         return parsed
