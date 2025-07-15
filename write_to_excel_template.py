@@ -129,28 +129,15 @@ def write_multiple_applicants_to_template(
 ):
     """
     Writes up to 10 applicants into Tenant_Template_Multiple.xlsx.
-
-    Parameters
-    ----------
-    df : pandas DataFrame
-        Each row is one applicant.
-    template_path : str
-        Path to the Excel template.
-    summary_header : str | None
-        Appended to centre header if provided.
     """
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # First row for property meta
-        first_row = (
-            df.iloc[0].to_dict()
-            if hasattr(df.iloc[0], "to_dict")
-            else TypeError(
-                f"Expected DataFrame with Series rows, got {type(df.iloc[0])}"
-            )
-        )
+        # Safely convert first row
+        if not hasattr(df.iloc[0], "to_dict"):
+            raise TypeError(f"Expected Series row in DataFrame, got {type(df.iloc[0])}")
+        first_row = df.iloc[0].to_dict()
 
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
@@ -165,7 +152,7 @@ def write_multiple_applicants_to_template(
         ws["E4"] = first_row.get("Move-in Date", "")
         ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
         ws["F10"] = first_row.get("Rep Name", "")
-        ws["J9"]  = first_row.get("Rep Phone", "")
+        ws["J9"] = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
@@ -175,29 +162,25 @@ def write_multiple_applicants_to_template(
             if idx >= len(col_starts):
                 break
 
-            # ── NEW: validate each row before .to_dict() ───────────────────────
             if not hasattr(row_series, "to_dict"):
-                raise TypeError(
-                    f"Row {idx} must be pandas Series; got {type(row_series)}"
-                )
-            row = row_series.to_dict()
-            # ───────────────────────────────────────────────────────────────────
+                raise TypeError(f"Row {idx} must be Series, got {type(row_series)}")
 
+            row = row_series.to_dict()
             col = col_starts[idx]
 
             def write(offset, value):
                 ws[f"{col}{start_row + offset}"] = value or ""
 
-            write(0,  row.get("FullName"))
-            write(1,  row.get("Email"))
-            write(2,  row.get("PhoneNumber"))
-            write(3,  row.get("SSN"))
-            write(4,  row.get("DriverLicenseNumber"))
-            write(5,  row.get("DOB"))
-            write(6,  calc_age(row.get("DOB", "")))
-            write(7,  str(row.get("No of Occupants", "")))
-            write(8,  row.get("No of Children", ""))
-            write(9,  row.get("Applicant's Current Address"))
+            write(0, row.get("FullName"))
+            write(1, row.get("Email"))
+            write(2, row.get("PhoneNumber"))
+            write(3, row.get("SSN"))
+            write(4, row.get("DriverLicenseNumber"))
+            write(5, row.get("DOB"))
+            write(6, calc_age(row.get("DOB", "")))
+            write(7, str(row.get("No of Occupants", "")))
+            write(8, row.get("No of Children", ""))
+            write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
@@ -208,11 +191,10 @@ def write_multiple_applicants_to_template(
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # Vehicle details (multiline) – unchanged …
-            v_types  = str(row.get("Vehicle Type", "") or "").split(", ")
-            v_makes  = str(row.get("Vehicle Make", "") or "").split(", ")
+            v_types = str(row.get("Vehicle Type", "") or "").split(", ")
+            v_makes = str(row.get("Vehicle Make", "") or "").split(", ")
             v_models = str(row.get("Vehicle Model", "") or "").split(", ")
-            v_years  = str(row.get("Vehicle Year", "") or "").split(", ")
+            v_years = str(row.get("Vehicle Year", "") or "").split(", ")
 
             vehicle_lines = [
                 f"{t} {m} {mo} {y}".strip()
@@ -245,10 +227,6 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
-
-
-from openpyxl import load_workbook
-from datetime import datetime
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
