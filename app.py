@@ -175,21 +175,32 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                 st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
 
 # Download buttons
-if "final_output_bytes" in st.session_state and "final_filename" in st.session_state:
+# ✅ Final Tenant Template Download Button
+if (
+    "final_output_bytes" in st.session_state 
+    and isinstance(st.session_state["final_output_bytes"], BytesIO)
+    and "final_filename" in st.session_state
+):
     st.sidebar.download_button(
-        label="\u2B07\uFE0F Download Final Tenant Template",
-        data=st.session_state["final_output_bytes"],
+        label="⬇️ Download Final Tenant Template",
+        data=st.session_state["final_output_bytes"].getvalue(),
         file_name=st.session_state["final_filename"],
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-if "summary_output_bytes" in st.session_state and "summary_filename" in st.session_state:
+# ✅ Summary Template Download Button
+if (
+    "summary_output_bytes" in st.session_state 
+    and isinstance(st.session_state["summary_output_bytes"], BytesIO)
+    and "summary_filename" in st.session_state
+):
     st.sidebar.download_button(
-        label="\u2B07\uFE0F Download Summary Template",
-        data=st.session_state["summary_output_bytes"],
+        label="⬇️ Download Summary Template",
+        data=st.session_state["summary_output_bytes"].getvalue(),
         file_name=st.session_state["summary_filename"],
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
 # === Upload PDF Files ===
