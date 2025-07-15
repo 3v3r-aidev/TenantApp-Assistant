@@ -103,6 +103,7 @@ else:
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 SINGLE_TEMPLATE_PATH = "templates/Tenant_Template.xlsx"
 MULTIPLE_TEMPLATE_PATH = "templates/Tenant_Template_Multiple.xlsx"
+SUMMARY_TEMPLATE_PATH ="template/App_Summary_Template.xlsx"
 
 st.sidebar.title("Navigation")
 st.title(" Tenant Application Assistant")
@@ -127,6 +128,8 @@ if os.path.exists(EXTRACTED_DATA_PATH):
         key="applicant_selector"
     )
 
+import os
+
 # Save to Tenant Template
 if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
     selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
@@ -141,9 +144,14 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                 # Generate Tenant Template file
                 output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
 
-                # Generate App Summary Template file from the first applicant
+                # ✅ Generate App Summary Template file from first applicant
                 summary_path = "outputs/App_Summary_Template.xlsx"
-                write_to_summary_template(selected_df.iloc[0].to_dict(), output_path=summary_path)
+                os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+                write_to_summary_template(
+                    flat_data=selected_df.iloc[0].to_dict(),
+                    output_path=summary_path,
+                    summary_template_path=SUMMARY_TEMPLATE_PATH  # ✅ use your constant
+                )
 
                 with open(summary_path, "rb") as f:
                     summary_bytes = f.read()
@@ -157,7 +165,6 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
 
             except Exception as e:
                 st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
-
 
 # === Upload PDF Files ===
 uploaded_pdfs = st.file_uploader(
