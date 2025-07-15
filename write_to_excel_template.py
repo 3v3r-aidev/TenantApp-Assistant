@@ -54,6 +54,8 @@ def normalize_date(date_str):
 
 def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx", summary_header=None):
     try:
+        data = data if isinstance(data, dict) else data.to_dict()  # <-- Safely convert to dict
+
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
@@ -143,35 +145,25 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         traceback.print_exc()
         return None, None
 
-
 def write_multiple_applicants_to_template(
     df,
     template_path="templates/Tenant_Template_Multiple.xlsx",
-    summary_header: str | None = None,
+    summary_header=None,
 ):
-    """
-    Fill the multi-applicant template with rows from `df` (max 10 applicants).
-    Optionally append `summary_header` (e.g. APP-637-2025-07-16-104533)
-    as line-3 of the center page header.
-    Returns: (BytesIO_output, generated_filename)  or  (None, None) on error
-    """
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # ── Left header (property address) ──
-        first_row = df.iloc[0]
+        # ── Convert first row to dict so .get() is always safe
+        first_row = df.iloc[0].to_dict()
+
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
-        # ── Center header (keep lines 1-2, add line-3) ──
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")[:2]  # keep up to 2 existing lines
-            lines.append(f"Date={summary_header}")
-            ws.oddHeader.center.text = "\n".join(lines)
+            ws.oddHeader.center.text = "\n".join((existing.split("\n")[:2]) + [f"Date={summary_header}"])
 
-        # ── Top-level fields ──
         ws["E3"] = property_address
         ws["E4"] = normalize_date(first_row.get("Move-in Date", ""))
         ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
@@ -179,16 +171,16 @@ def write_multiple_applicants_to_template(
         ws["J9"]  = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
-        # Column starting letters for each applicant block (max 10)
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
         start_row = 14
 
-        for idx, (_, row) in enumerate(df.iterrows()):
+        for idx, (_, row_series) in enumerate(df.iterrows()):
             if idx >= len(col_starts):
-                break  # template supports max 10
+                break
             col = col_starts[idx]
+            row = row_series.to_dict()  # ← ensure every loop uses a dict
 
-            def write(offset: int, value):
+            def write(offset, value):
                 ws[f"{col}{start_row + offset}"] = value or ""
 
             write(0,  row.get("FullName"))
@@ -210,7 +202,7 @@ def write_multiple_applicants_to_template(
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # ── Vehicle details (multi-line) ──
+            # Vehicle details (multiline)
             v_types  = str(row.get("Vehicle Type", "")  or "").split(", ")
             v_makes  = str(row.get("Vehicle Make", "")  or "").split(", ")
             v_models = str(row.get("Vehicle Model", "") or "").split(", ")
@@ -223,21 +215,15 @@ def write_multiple_applicants_to_template(
             ]
 
             target = f"{col}{start_row + 20}"
-            if vehicle_lines:
-                ws[target] = "\n".join(vehicle_lines)
-                ws[target].alignment = openpyxl.styles.Alignment(wrap_text=True)
-            else:
-                ws[target] = ""
+            ws[target] = "\n".join(vehicle_lines) if vehicle_lines else ""
+            ws[target].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-            # Total vehicle payment
             write(21, row.get("Vehicle Monthly Payment"))
 
-        # ── Save workbook to BytesIO ──
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        # Filename generator
         cleaned = re.sub(r"[^\w\s]", "", property_address)
         words = cleaned.strip().split()
         word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
@@ -245,11 +231,10 @@ def write_multiple_applicants_to_template(
 
         return output, filename
 
-    except Exception as e:
+    except Exception:
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
-        return None, None  # always return tuple
-
+        return None, None
 
 def write_to_summary_template(
     flat_data: dict,
