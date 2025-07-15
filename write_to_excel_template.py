@@ -73,6 +73,10 @@ def write_flattened_to_template(
         If provided, appended as `Date=<summary_header>` on line-3
         of the centre header.
     """
+
+    try:
+        print("🔍 Type of incoming `data`:", type(data))
+        print("🔍 Preview of `data`:", data if isinstance(data, str) else list(data.keys()))
     try:
         # ── NEW: strict validation before using .get() ──────────────────────────
         if isinstance(data, dict):
