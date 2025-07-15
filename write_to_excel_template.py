@@ -359,6 +359,46 @@ def write_to_summary_template(
 
     wb.save(output_path)
 
+def normalize_date_string(date_str):
+    """
+    Normalizes date strings by replacing "-", "." with "/", and formatting to MM/DD/YYYY.
+    Accepts variations like "2024-07-15", "15.07.2024", "07/15/24", etc.
+    Returns the normalized string or original if not parseable.
+    """
+    if not isinstance(date_str, str):
+        return date_str
+
+    clean = re.sub(r"[-.]", "/", date_str.strip())
+
+    # Try parsing in multiple known formats
+    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%d/%m/%y", "%Y/%m/%d"):
+        try:
+            dt = datetime.strptime(clean, fmt)
+            return dt.strftime("%m/%d/%Y")
+        except ValueError:
+            continue
+
+    return date_str  # return unchanged if parsing fails
+
+
+def normalize_all_dates(data):
+    """
+    Applies normalize_date_string to all values in a flat or nested dictionary
+    where keys suggest date-like content.
+    This is universal: run it once before passing data to any template-writing function.
+    """
+    def is_date_field(key):
+        return any(k in key.lower() for k in ["date", "dob", "start", "move", "birth"])
+
+    def normalize_recursive(obj):
+        if isinstance(obj, dict):
+            return {k: normalize_date_string(v) if is_date_field(k) else normalize_recursive(v)
+                    for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [normalize_recursive(i) for i in obj]
+        return obj
+
+    return normalize_recursive(data)
 
 
 
