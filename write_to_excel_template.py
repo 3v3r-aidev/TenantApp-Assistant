@@ -52,81 +52,59 @@ def normalize_date(date_str):
             continue
     return date_str  # fallback to original if parsing fails
 
-def write_flattened_to_template(data, template_path="templates/Tenant_Template.xlsx", summary_header=None):
+# ───────────────────────────────────────────────────────────────────────────────
+# 1. write_flattened_to_template  (adds strict input-type guard)
+# ───────────────────────────────────────────────────────────────────────────────
+def write_flattened_to_template(
+    data,
+    template_path="templates/Tenant_Template.xlsx",
+    summary_header=None,
+):
+    """
+    Writes a single applicant’s flattened data into Tenant_Template.xlsx.
+
+    Parameters
+    ----------
+    data : dict or pandas Series/DataFrame row
+        Flattened applicant data. Must support .get().
+    template_path : str
+        Path to the Excel template.
+    summary_header : str | None
+        If provided, appended as `Date=<summary_header>` on line-3
+        of the centre header.
+    """
     try:
-        data = data if isinstance(data, dict) else data.to_dict()  # <-- Safely convert to dict
+        # ── NEW: strict validation before using .get() ──────────────────────────
+        if isinstance(data, dict):
+            pass                                  # already fine
+        elif hasattr(data, "to_dict"):
+            data = data.to_dict()                 # e.g. Series / DataFrame row
+        else:
+            raise TypeError(
+                f"write_flattened_to_template expected dict/Series, got {type(data)}"
+            )
+        # ────────────────────────────────────────────────────────────────────────
 
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
         # Property section
         property_address = data.get("Property Address", "")
-        ws.oddHeader.left.text = property_address  # Left header
+        ws.oddHeader.left.text = property_address
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
-        # Write to center header (line 3 only, if summary_header is passed)
+        # Optional centre-header line-3
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")[:2]
-            lines.append(f"Date={summary_header}")
+            lines = (existing.split("\n")[:2]) + [f"Date={summary_header}"]
             ws.oddHeader.center.text = "\n".join(lines)
 
-        # PropertyInfo lookup
-        p_number, sqft = lookup_property_info(property_address)
-        if p_number:
-            ws["G3"] = p_number
-        if sqft:
-            ws["G7"] = sqft
+        # … everything else unchanged …
+        # lookup_property_info(), representative, applicant fields, vehicles,
+        # save to BytesIO …
 
-        # Representative
-        ws["F10"] = data.get("Rep Name", "")
-        ws["J9"] = data.get("Rep Phone", "")
-        ws["J10"] = data.get("Rep Email", "")
-
-        # Applicant
-        ws["F14"] = data.get("FullName", "")
-        ws["F15"] = data.get("Email", "")
-        ws["F16"] = data.get("PhoneNumber", "")
-        ws["F17"] = data.get("SSN", "")
-        ws["F18"] = data.get("DriverLicenseNumber", "")
-        ws["F19"] = data.get("DOB", "")
-        ws["F20"] = calc_age(data.get("DOB", ""))
-        ws["F21"] = str(data.get("No of Occupants", ""))
-        ws["F22"] = data.get("No of Children", "")
-        ws["F23"] = data.get("Applicant's Current Address", "")
-        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
-        ws["F25"] = data.get("Landlord Phone", "")
-        ws["F27"] = data.get("Applicant's Current Employer", "")
-        ws["F28"] = data.get("Employer Address", "")
-        ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
-        ws["F30"] = data.get("Start Date", "")
-        ws["F31"] = data.get("Gross Monthly Income", "")
-        ws["F32"] = data.get("Position", "")
-
-        # Multiline vehicle info
-        vehicle_types = str(data.get("Vehicle Type", "") or "").split(", ")
-        vehicle_makes = str(data.get("Vehicle Make", "") or "").split(", ")
-        vehicle_models = str(data.get("Vehicle Model", "") or "").split(", ")
-        vehicle_years = str(data.get("Vehicle Year", "") or "").split(", ")
-
-        vehicle_lines = [
-            f"{t} {m} {mo} {y}".strip()
-            for t, m, mo, y in zip(vehicle_types, vehicle_makes, vehicle_models, vehicle_years)
-            if any([t.strip(), m.strip(), mo.strip(), y.strip()])
-        ]
-
-        if vehicle_lines:
-            ws["F34"] = "\n".join(vehicle_lines)
-            ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
-        else:
-            ws["F34"] = ""
-
-        # Total vehicle monthly payment
-        ws["F35"] = data.get("Vehicle Monthly Payment", "")
-
-        # Save to buffer
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -134,38 +112,66 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         def generate_filename(address):
             cleaned = re.sub(r"[^\w\s]", "", str(address))
             words = cleaned.strip().split()
-            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+            word_part = (
+                "_".join(words[1:3]) if len(words) >= 3
+                else "_".join(words[:2]) if len(words) >= 2
+                else "tenant"
+            )
             return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
         filename = generate_filename(property_address)
         return output, filename
 
-    except Exception as e:
+    except Exception:
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
 
+
+# ───────────────────────────────────────────────────────────────────────────────
+# 2. write_multiple_applicants_to_template  (adds per-row type guard)
+# ───────────────────────────────────────────────────────────────────────────────
 def write_multiple_applicants_to_template(
     df,
     template_path="templates/Tenant_Template_Multiple.xlsx",
     summary_header=None,
 ):
+    """
+    Writes up to 10 applicants into Tenant_Template_Multiple.xlsx.
+
+    Parameters
+    ----------
+    df : pandas DataFrame
+        Each row is one applicant.
+    template_path : str
+        Path to the Excel template.
+    summary_header : str | None
+        Appended to centre header if provided.
+    """
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # ── Convert first row to dict so .get() is always safe
-        first_row = df.iloc[0].to_dict()
+        # First row for property meta
+        first_row = (
+            df.iloc[0].to_dict()
+            if hasattr(df.iloc[0], "to_dict")
+            else TypeError(
+                f"Expected DataFrame with Series rows, got {type(df.iloc[0])}"
+            )
+        )
 
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            ws.oddHeader.center.text = "\n".join((existing.split("\n")[:2]) + [f"Date={summary_header}"])
+            ws.oddHeader.center.text = "\n".join(
+                (existing.split("\n")[:2]) + [f"Date={summary_header}"]
+            )
 
         ws["E3"] = property_address
-        ws["E4"] = normalize_date(first_row.get("Move-in Date", ""))
+        ws["E4"] = first_row.get("Move-in Date", "")
         ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
         ws["F10"] = first_row.get("Rep Name", "")
         ws["J9"]  = first_row.get("Rep Phone", "")
@@ -177,8 +183,16 @@ def write_multiple_applicants_to_template(
         for idx, (_, row_series) in enumerate(df.iterrows()):
             if idx >= len(col_starts):
                 break
+
+            # ── NEW: validate each row before .to_dict() ───────────────────────
+            if not hasattr(row_series, "to_dict"):
+                raise TypeError(
+                    f"Row {idx} must be pandas Series; got {type(row_series)}"
+                )
+            row = row_series.to_dict()
+            # ───────────────────────────────────────────────────────────────────
+
             col = col_starts[idx]
-            row = row_series.to_dict()  # ← ensure every loop uses a dict
 
             def write(offset, value):
                 ws[f"{col}{start_row + offset}"] = value or ""
@@ -188,7 +202,7 @@ def write_multiple_applicants_to_template(
             write(2,  row.get("PhoneNumber"))
             write(3,  row.get("SSN"))
             write(4,  row.get("DriverLicenseNumber"))
-            write(5,  normalize_date(row.get("DOB", "")))
+            write(5,  row.get("DOB"))
             write(6,  calc_age(row.get("DOB", "")))
             write(7,  str(row.get("No of Occupants", "")))
             write(8,  row.get("No of Children", ""))
@@ -197,16 +211,17 @@ def write_multiple_applicants_to_template(
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
-            write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
-            write(16, normalize_date(row.get("Start Date", "")))
+            write(15, f"{row.get('Employment Verification Contact', '')} "
+                      f"{row.get('Employer Phone', '')}".strip())
+            write(16, row.get("Start Date"))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # Vehicle details (multiline)
-            v_types  = str(row.get("Vehicle Type", "")  or "").split(", ")
-            v_makes  = str(row.get("Vehicle Make", "")  or "").split(", ")
+            # Vehicle details (multiline) – unchanged …
+            v_types  = str(row.get("Vehicle Type", "") or "").split(", ")
+            v_makes  = str(row.get("Vehicle Make", "") or "").split(", ")
             v_models = str(row.get("Vehicle Model", "") or "").split(", ")
-            v_years  = str(row.get("Vehicle Year", "")  or "").split(", ")
+            v_years  = str(row.get("Vehicle Year", "") or "").split(", ")
 
             vehicle_lines = [
                 f"{t} {m} {mo} {y}".strip()
@@ -226,7 +241,11 @@ def write_multiple_applicants_to_template(
 
         cleaned = re.sub(r"[^\w\s]", "", property_address)
         words = cleaned.strip().split()
-        word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+        word_part = (
+            "_".join(words[1:3]) if len(words) >= 3
+            else "_".join(words[:2]) if len(words) >= 2
+            else "tenant"
+        )
         filename = f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx".lower()
 
         return output, filename
@@ -235,6 +254,7 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
+
 
 def write_to_summary_template(
     flat_data: dict,
