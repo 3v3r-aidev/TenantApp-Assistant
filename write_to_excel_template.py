@@ -20,7 +20,6 @@ def calc_age(dob_str: str) -> str | int:
             continue
     return "Invalid DOB"
 
-
 def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
     try:
         if not address:
@@ -68,9 +67,9 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
         # Write to center header (line 3 only, if summary_header is passed)
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
-            center_header = "\n".join(lines[:2] + [f"Date={summary_header}"])
-            ws.oddHeader.center.text = center_header
+            lines = existing.split("\n")[:2]
+            lines.append(f"Date={summary_header}")
+            ws.oddHeader.center.text = "\n".join(lines)
 
         # PropertyInfo lookup
         p_number, sqft = lookup_property_info(property_address)
@@ -148,54 +147,60 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
 def write_multiple_applicants_to_template(
     df,
     template_path="templates/Tenant_Template_Multiple.xlsx",
-    summary_header=None,
+    summary_header: str | None = None,
 ):
+    """
+    Fill the multi-applicant template with rows from `df` (max 10 applicants).
+    Optionally append `summary_header` (e.g. APP-637-2025-07-16-104533)
+    as line-3 of the center page header.
+    Returns: (BytesIO_output, generated_filename)  or  (None, None) on error
+    """
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # ----------- Sheet-level header updates -----------
+        # ── Left header (property address) ──
         first_row = df.iloc[0]
-
-        # Left header – property address
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
-        # Center header – keep lines 1-2, add line 3 with APP-counter
+        # ── Center header (keep lines 1-2, add line-3) ──
         if summary_header:
             existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
-            ws.oddHeader.center.text = "\n".join(lines[:2] + [f"Date={summary_header}"])
+            lines = existing.split("\n")[:2]  # keep up to 2 existing lines
+            lines.append(f"Date={summary_header}")
+            ws.oddHeader.center.text = "\n".join(lines)
 
-        # ----------- Standard template writes -----------
+        # ── Top-level fields ──
         ws["E3"] = property_address
         ws["E4"] = normalize_date(first_row.get("Move-in Date", ""))
         ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
         ws["F10"] = first_row.get("Rep Name", "")
-        ws["J9"] = first_row.get("Rep Phone", "")
+        ws["J9"]  = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
+        # Column starting letters for each applicant block (max 10)
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
         start_row = 14
 
         for idx, (_, row) in enumerate(df.iterrows()):
             if idx >= len(col_starts):
-                break
+                break  # template supports max 10
             col = col_starts[idx]
 
-            def write(offset, value):
+            def write(offset: int, value):
                 ws[f"{col}{start_row + offset}"] = value or ""
 
-            write(0, row.get("FullName"))
-            write(1, row.get("Email"))
-            write(2, row.get("PhoneNumber"))
-            write(3, row.get("SSN"))
-            write(4, row.get("DriverLicenseNumber"))
-            write(5, normalize_date(row.get("DOB", "")))
-            write(6, calc_age(row.get("DOB", "")))
-            write(7, str(row.get("No of Occupants", "")))
-            write(8, row.get("No of Children", ""))
-            write(9, row.get("Applicant's Current Address"))
+            write(0,  row.get("FullName"))
+            write(1,  row.get("Email"))
+            write(2,  row.get("PhoneNumber"))
+            write(3,  row.get("SSN"))
+            write(4,  row.get("DriverLicenseNumber"))
+            write(5,  normalize_date(row.get("DOB", "")))
+            write(6,  calc_age(row.get("DOB", "")))
+            write(7,  str(row.get("No of Occupants", "")))
+            write(8,  row.get("No of Children", ""))
+            write(9,  row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
@@ -205,46 +210,45 @@ def write_multiple_applicants_to_template(
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # ----- Vehicle details (multiline) -----
-            vehicle_types = str(row.get("Vehicle Type", "") or "").split(", ")
-            vehicle_makes = str(row.get("Vehicle Make", "") or "").split(", ")
-            vehicle_models = str(row.get("Vehicle Model", "") or "").split(", ")
-            vehicle_years = str(row.get("Vehicle Year", "") or "").split(", ")
+            # ── Vehicle details (multi-line) ──
+            v_types  = str(row.get("Vehicle Type", "")  or "").split(", ")
+            v_makes  = str(row.get("Vehicle Make", "")  or "").split(", ")
+            v_models = str(row.get("Vehicle Model", "") or "").split(", ")
+            v_years  = str(row.get("Vehicle Year", "")  or "").split(", ")
 
             vehicle_lines = [
                 f"{t} {m} {mo} {y}".strip()
-                for t, m, mo, y in zip(vehicle_types, vehicle_makes, vehicle_models, vehicle_years)
+                for t, m, mo, y in zip(v_types, v_makes, v_models, v_years)
                 if any([t.strip(), m.strip(), mo.strip(), y.strip()])
             ]
 
+            target = f"{col}{start_row + 20}"
             if vehicle_lines:
-                ws[f"{col}{start_row + 20}"] = "\n".join(vehicle_lines)
-                ws[f"{col}{start_row + 20}"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+                ws[target] = "\n".join(vehicle_lines)
+                ws[target].alignment = openpyxl.styles.Alignment(wrap_text=True)
             else:
-                ws[f"{col}{start_row + 20}"] = ""
+                ws[target] = ""
 
-            # Total monthly vehicle payment
+            # Total vehicle payment
             write(21, row.get("Vehicle Monthly Payment"))
 
-        # ----------- Save to memory -----------
+        # ── Save workbook to BytesIO ──
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        def generate_filename(address):
-            cleaned = re.sub(r"[^\w\s]", "", str(address))
-            words = cleaned.strip().split()
-            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
-            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+        # Filename generator
+        cleaned = re.sub(r"[^\w\s]", "", property_address)
+        words = cleaned.strip().split()
+        word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+        filename = f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx".lower()
 
-        filename = generate_filename(property_address or "tenant")
         return output, filename
 
     except Exception as e:
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
-        return None, None
-
+        return None, None  # always return tuple
 
 
 def write_to_summary_template(
