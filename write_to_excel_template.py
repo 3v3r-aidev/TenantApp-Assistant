@@ -242,7 +242,7 @@ def write_to_summary_template(
     # ── NEW: ensure dict-like before any .get() ────────────────────────────────
     if isinstance(flat_data, dict):
         pass
-    elif hasattr(flat_data, "to_dict"):          # e.g. pandas Series/DataFrame row
+    elif hasattr(flat_data, "to_dict"):  # e.g. pandas Series/DataFrame row
         flat_data = flat_data.to_dict()
     else:
         raise TypeError(
@@ -267,52 +267,65 @@ def write_to_summary_template(
     ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
 
     # ---------- numbers needed for gross / net ratio --------------------------
-    rent_str  = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
+    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
     gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
-    try:    rent  = float(rent_str)  if rent_str  else 0
-    except: rent  = 0
-    try:    gross = float(gross_str) if gross_str else 0
-    except: gross = 0
+    try:
+        rent = float(rent_str) if rent_str else 0
+    except:
+        rent = 0
+    try:
+        gross = float(gross_str) if gross_str else 0
+    except:
+        gross = 0
 
-    # Co-applicant aggregate
+    # ✅ Safe Co-applicant aggregate
     co_total = 0
     for app in flat_data.get("Co-applicants", []):
+        if not isinstance(app, dict):
+            continue  # Skip if not a dict
         val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
-        try:    co_total += float(val) if val else 0
-        except: pass
+        try:
+            co_total += float(val) if val else 0
+        except:
+            continue
     net_total = gross + co_total
-    gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
-    net_ratio   = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-    # ---------- (slightly condensed) field-to-cell map -------------------------
+    gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+    net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+
+    # ✅ Format vehicle and animal details safely
     vehicle = flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))
     if isinstance(vehicle, list):
-        vehicle = "\n".join(str(v).strip() for v in vehicle if v)
+        vehicle = "\n".join([str(v).strip() for v in vehicle if v])
     elif not isinstance(vehicle, str):
         vehicle = ""
 
     animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
-    if isinstance(flat_data.get("G. Animals"), list):
-        animals = "\n".join(str(a).strip() for a in flat_data["G. Animals"] if a)
+    g_animals = flat_data.get("G. Animals", [])
+    if isinstance(g_animals, list):
+        animals = "\n".join([str(a).strip() for a in g_animals if a])
     elif not isinstance(animals, str):
         animals = ""
 
+    # Field-to-cell map
     write_map = {
-        "B2":  flat_data.get("Property Address", ""),
-        "B3":  flat_data.get("Monthly Rent", ""),
-        "B4":  flat_data.get("Move-in Date", ""),
-        "B5":  flat_data.get("Application Fee", ""),
-        "B6":  f"{gross_ratio}/{net_ratio}",
-        "B7":  flat_data.get("No of Occupants", ""),
-        "B8":  flat_data.get("Rent", ""),
-        "B9":  flat_data.get("Applicant's Current Employer", ""),
+        "B2": flat_data.get("Property Address", ""),
+        "B3": flat_data.get("Monthly Rent", ""),
+        "B4": flat_data.get("Move-in Date", ""),
+        "B5": flat_data.get("Application Fee", ""),
+        "B6": f"{gross_ratio}/{net_ratio}",
+        "B7": flat_data.get("No of Occupants", ""),
+        "B8": flat_data.get("Rent", ""),
+        "B9": flat_data.get("Applicant's Current Employer", ""),
         "B12": vehicle,
         "B13": animals,
     }
-    for cell, val in write_map.items():
-        ws[cell] = val
+
+    for cell, value in write_map.items():
+        ws[cell] = value
 
     wb.save(output_path)
+
 
 
 
