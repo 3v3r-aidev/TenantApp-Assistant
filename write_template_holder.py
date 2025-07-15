@@ -11,7 +11,7 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
 
     expected_columns = [
         "Property Address", "Move-in Date", "FullName", "PhoneNumber", "Email", "DOB", "SSN",
-        "Applicant's Current Address", "Landlord Phone", "Landlord or Property Manager's Name", "No of Children", "No of Occupants",
+        "Applicant's Current Address", "Landlord Phone", "Landlord or Property Manager's Name", "Rent", "No of Children", "No of Occupants",
         "IDType", "DriverLicenseNumber", "IDIssuer", "Nationality", "FormSource", "ApplicationDate",
         "Rep Name", "Rep Company", "Rep Email", "Rep Phone",
         "Applicant's Current Employer", "Employment Verification Contact", "Employer Address",
