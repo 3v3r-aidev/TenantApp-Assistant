@@ -230,7 +230,7 @@ def write_flattened_to_template(data, template_path="templates/Tenant_Template.x
 def write_to_summary_template(
     flat_data: dict,
     output_path: str | Path,
-    summary_template_path: str | Path = "App_Summary_Template.xlsx",
+    summary_template_path: str | Path = "templates/App_Summary_Template.xlsx",
 ) -> None:
     wb = load_workbook(summary_template_path)
     ws = wb.active
