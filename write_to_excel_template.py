@@ -359,46 +359,25 @@ def write_to_summary_template(
 
     wb.save(output_path)
 
-def normalize_date_string(date_str):
+# ---------------------------------------------------------------------------
+# UNIVERSAL PRE-PROCESSOR
+# ---------------------------------------------------------------------------
+
+def prepare_applicant_data(raw):
     """
-    Normalizes date strings by replacing "-", "." with "/", and formatting to MM/DD/YYYY.
-    Accepts variations like "2024-07-15", "15.07.2024", "07/15/24", etc.
-    Returns the normalized string or original if not parseable.
+    Accepts:
+        • dict,
+        • pandas Series,
+        • or any object with `.to_dict()`.
+    Returns:
+        A flat dict with every date-like field normalized to MM/DD/YYYY.
     """
-    if not isinstance(date_str, str):
-        return date_str
+    # 1) Ensure we’re working with a plain dictionary
+    if hasattr(raw, "to_dict"):          # Series / DataFrame row
+        raw = raw.to_dict()
 
-    clean = re.sub(r"[-.]", "/", date_str.strip())
+    if not isinstance(raw, dict):
+        raise TypeError("prepare_applicant_data expects a dict-like object")
 
-    # Try parsing in multiple known formats
-    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%d/%m/%y", "%Y/%m/%d"):
-        try:
-            dt = datetime.strptime(clean, fmt)
-            return dt.strftime("%m/%d/%Y")
-        except ValueError:
-            continue
-
-    return date_str  # return unchanged if parsing fails
-
-
-def normalize_all_dates(data):
-    """
-    Applies normalize_date_string to all values in a flat or nested dictionary
-    where keys suggest date-like content.
-    This is universal: run it once before passing data to any template-writing function.
-    """
-    def is_date_field(key):
-        return any(k in key.lower() for k in ["date", "dob", "start", "move", "birth"])
-
-    def normalize_recursive(obj):
-        if isinstance(obj, dict):
-            return {k: normalize_date_string(v) if is_date_field(k) else normalize_recursive(v)
-                    for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [normalize_recursive(i) for i in obj]
-        return obj
-
-    return normalize_recursive(data)
-
-
-
+    # 2) Normalize every date field (uses your existing helper)
+    return normalize_all_dates(raw)
