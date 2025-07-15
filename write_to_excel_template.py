@@ -256,15 +256,35 @@ def write_multiple_applicants_to_template(
         return None, None
 
 
+from openpyxl import load_workbook
+from datetime import datetime
+
+# ───────────────────────────────────────────────────────────────────────────────
+# 3. write_to_summary_template  (now type-safe)
+# ───────────────────────────────────────────────────────────────────────────────
 def write_to_summary_template(
-    flat_data: dict,
-    output_path: str | Path,
-    summary_template_path: str | Path = "templates/App_Summary_Template.xlsx",
+    flat_data,
+    output_path,
+    summary_template_path="templates/App_Summary_Template.xlsx",
 ) -> None:
+    """
+    Writes one applicant’s key facts into App_Summary_Template.xlsx.
+    """
+    # ── NEW: ensure dict-like before any .get() ────────────────────────────────
+    if isinstance(flat_data, dict):
+        pass
+    elif hasattr(flat_data, "to_dict"):          # e.g. pandas Series/DataFrame row
+        flat_data = flat_data.to_dict()
+    else:
+        raise TypeError(
+            f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
+        )
+    # ───────────────────────────────────────────────────────────────────────────
+
     wb = load_workbook(summary_template_path)
     ws = wb.active
 
-    # Counter logic with forced test-mode = 636
+    # Hidden _Meta sheet + counter logic (unchanged) ---------------------------
     meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
     if "_Meta" not in wb.sheetnames:
         wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
@@ -275,68 +295,55 @@ def write_to_summary_template(
     TEST_START_VALUE = 636
     counter = TEST_START_VALUE if TEST_MODE else (meta_ws["B1"].value or TEST_START_VALUE) + 1
     meta_ws["B1"] = counter
-
     ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
 
-    # Monthly Rent (denominator)
-    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
-    try:
-        rent = float(rent_str) if rent_str else 0
-    except ValueError:
-        rent = 0
-
-    # Gross Monthly Income: Primary
+    # ---------- numbers needed for gross / net ratio --------------------------
+    rent_str  = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
     gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
-    try:
-        gross = float(gross_str) if gross_str else 0
-    except ValueError:
-        gross = 0
+    try:    rent  = float(rent_str)  if rent_str  else 0
+    except: rent  = 0
+    try:    gross = float(gross_str) if gross_str else 0
+    except: gross = 0
 
-    # Net Income = sum of all applicant gross income
-    co_applicants = flat_data.get("Co-applicants", [])
-    co_gross_total = 0
-    for applicant in co_applicants:
-        value = str(applicant.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
-        try:
-            co_gross_total += float(value) if value else 0
-        except:
-            continue
-    net_total = gross + co_gross_total
-
+    # Co-applicant aggregate
+    co_total = 0
+    for app in flat_data.get("Co-applicants", []):
+        val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+        try:    co_total += float(val) if val else 0
+        except: pass
+    net_total = gross + co_total
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
-    net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+    net_ratio   = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-    # Format vehicle and animal details safely
-    vehicle_details = flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))
-    if isinstance(vehicle_details, list):
-        vehicle_details = "\n".join([str(v).strip() for v in vehicle_details if v])
-    elif not isinstance(vehicle_details, str):
-        vehicle_details = ""
+    # ---------- (slightly condensed) field-to-cell map -------------------------
+    vehicle = flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))
+    if isinstance(vehicle, list):
+        vehicle = "\n".join(str(v).strip() for v in vehicle if v)
+    elif not isinstance(vehicle, str):
+        vehicle = ""
 
-    animal_details = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+    animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
     if isinstance(flat_data.get("G. Animals"), list):
-        animals = flat_data["G. Animals"]
-        animal_details = "\n".join([str(a).strip() for a in animals if a]) if animals else ""
-    elif not isinstance(animal_details, str):
-        animal_details = ""
+        animals = "\n".join(str(a).strip() for a in flat_data["G. Animals"] if a)
+    elif not isinstance(animals, str):
+        animals = ""
 
-    # Field-to-cell map
     write_map = {
-        "Address": ("B2", flat_data.get("Property Address", "")),
-        "Rent": ("B3", flat_data.get("Monthly Rent", "")),
-        "Move-in date": ("B4", flat_data.get("Move-in Date", "")),
-        "Application Fee": ("B5", flat_data.get("Application Fee", "")),
-        "Gross/Net Ratio": ("B6", f"{gross_ratio}/{net_ratio}"),
-        "No Of Occupants": ("B7", flat_data.get("No of Occupants", "")),
-        "Current Rent": ("B8", flat_data.get("Rent", "")),
-        "Employment": ("B9", flat_data.get("Applicant's Current Employer", "")),
-        "Cars": ("B12", vehicle_details),
-        "Pets": ("B13", animal_details),
+        "B2":  flat_data.get("Property Address", ""),
+        "B3":  flat_data.get("Monthly Rent", ""),
+        "B4":  flat_data.get("Move-in Date", ""),
+        "B5":  flat_data.get("Application Fee", ""),
+        "B6":  f"{gross_ratio}/{net_ratio}",
+        "B7":  flat_data.get("No of Occupants", ""),
+        "B8":  flat_data.get("Rent", ""),
+        "B9":  flat_data.get("Applicant's Current Employer", ""),
+        "B12": vehicle,
+        "B13": animals,
     }
-
-    for _, (cell, value) in write_map.items():
-        ws[cell] = value
+    for cell, val in write_map.items():
+        ws[cell] = val
 
     wb.save(output_path)
+
 
 
