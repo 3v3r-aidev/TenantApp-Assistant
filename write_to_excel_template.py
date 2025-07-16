@@ -2,11 +2,13 @@ import openpyxl
 import re
 import traceback
 from openpyxl import load_workbook
+from openpyxl.styles import Alignment
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
 import pandas as pd 
+
 
 
 def calc_age(dob_str: str) -> str | int:
@@ -413,10 +415,6 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-   from openpyxl import load_workbook
-from openpyxl.styles import Alignment
-from datetime import datetime
-
 def write_to_summary_template(
     flat_data,
     output_path,
@@ -500,23 +498,3 @@ def write_to_summary_template(
     # ✅ ANIMALS → B13 (uses pre-flattened summary)
     animals = flat_data.get("Animal Summary", "")
 
-    # Field-to-cell map
-    write_map = {
-        "B2": flat_data.get("Property Address", ""),
-        "B3": flat_data.get("Monthly Rent", ""),
-        "B4": flat_data.get("Move-in Date", ""),
-        "B5": flat_data.get("Application Fee", ""),
-        "B6": f"{gross_ratio}/{net_ratio}",
-        "B7": flat_data.get("No of Occupants", ""),
-        "B8": flat_data.get("Rent", ""),
-        "B9": flat_data.get("Applicant's Current Employer", ""),
-        "B12": vehicle,
-        "B13": animals,
-    }
-
-    for cell, value in write_map.items():
-        ws[cell] = value
-        if cell in ("B12", "B13"):
-            ws[cell].alignment = Alignment(wrap_text=True)
-
-    wb.save(output_path)
