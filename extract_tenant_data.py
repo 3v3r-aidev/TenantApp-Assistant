@@ -284,9 +284,11 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "No of Children": children_count,
         "No of Occupants": total_occupants,
         "No of Animals": no_of_animals,
+        "G. Animals": cleaned_animals  # ✅ Added this line
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
+
 
 
 def parse_gpt_output(form_data):
