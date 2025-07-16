@@ -73,7 +73,9 @@ def write_flattened_to_template(
     summary_header=None,
 ):
     try:
+        # ✅ Normalize date fields correctly
         data = normalize_all_dates(data)
+
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
@@ -158,7 +160,6 @@ def write_flattened_to_template(
         traceback.print_exc()
         return None, None
 
-
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -171,14 +172,11 @@ def write_multiple_applicants_to_template(
     Writes up to 10 applicants into Tenant_Template_Multiple.xlsx.
     """
     try:
-        data = normalize_all_dates(data)
+        # ✅ Normalize first row
+        first_row = normalize_all_dates(df.iloc[0].to_dict())
+
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
-
-        # Safely convert first row
-        if not hasattr(df.iloc[0], "to_dict"):
-            raise TypeError(f"Expected Series row in DataFrame, got {type(df.iloc[0])}")
-        first_row = df.iloc[0].to_dict()
 
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
@@ -206,7 +204,8 @@ def write_multiple_applicants_to_template(
             if not hasattr(row_series, "to_dict"):
                 raise TypeError(f"Row {idx} must be Series, got {type(row_series)}")
 
-            row = row_series.to_dict()
+            # ✅ Normalize each row
+            row = normalize_all_dates(row_series.to_dict())
             col = col_starts[idx]
 
             def write(offset, value):
@@ -296,7 +295,7 @@ def write_to_summary_template(
             f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
         )
     # ───────────────────────────────────────────────────────────────────────────
-    data = normalize_all_dates(data)
+    flat_data = normalize_all_dates(flat_data)
     wb = load_workbook(summary_template_path)
     ws = wb.active
 
@@ -340,19 +339,58 @@ def write_to_summary_template(
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
     net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-    # ✅ Format vehicle and animal details safely
-    vehicle = flat_data.get("Vehicle Details", flat_data.get("Vehicle Make", ""))
-    if isinstance(vehicle, list):
-        vehicle = "\n".join([str(v).strip() for v in vehicle if v])
-    elif not isinstance(vehicle, str):
-        vehicle = ""
+       # ---------- Build vehicle and animal multiline strings -------------------
+    # VEHICLES → B12
+    vehicle_lines = []
+    # Preferred structured list (new spec)
+    if isinstance(flat_data.get("F. Vehicle Information:"), list):
+        for v in flat_data["F. Vehicle Information:"]:
+            if not isinstance(v, dict):
+                continue
+            line = " ".join(
+                str(v.get(k, "")).strip()
+                for k in ("Type", "Year", "Make", "Model")
+                if v.get(k)
+            ).strip()
+            if line:
+                vehicle_lines.append(line)
+    else:
+        # Fallback to legacy separate columns
+        v_types  = str(flat_data.get("Vehicle Type", "")  or "").split(",")
+        v_years  = str(flat_data.get("Vehicle Year", "")  or "").split(",")
+        v_makes  = str(flat_data.get("Vehicle Make", "")  or "").split(",")
+        v_models = str(flat_data.get("Vehicle Model", "") or "").split(",")
+        for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
+            line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
+            if line:
+                vehicle_lines.append(line)
+    vehicle = "\n".join(vehicle_lines)
 
-    animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
-    g_animals = flat_data.get("G. Animals", [])
-    if isinstance(g_animals, list):
-        animals = "\n".join([str(a).strip() for a in g_animals if a])
-    elif not isinstance(animals, str):
-        animals = ""
+    # ANIMALS → B13
+    animal_lines = []
+    if isinstance(flat_data.get("G. Animals"), list):
+        for a in flat_data["G. Animals"]:
+            if not isinstance(a, dict):
+                continue
+            line = " | ".join(
+                f"{label}: {a.get(key)}" for label, key in [
+                    ("Type & Breed", "Type and Breed"),
+                    ("Name", "Name"),
+                    ("Color", "Color"),
+                    ("Weight", "Weight"),
+                    ("Age", "Age in Yrs"),
+                    ("Gender", "Gender")
+                ] if a.get(key)
+            )
+            if line:
+                animal_lines.append(line)
+    else:
+        # Fallback to simple fields if structured list absent
+        default_animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+        if isinstance(default_animals, str) and default_animals.strip():
+            animal_lines.append(default_animals.strip())
+    animals = "\n".join(animal_lines)
+
 
     # Field-to-cell map
     write_map = {
