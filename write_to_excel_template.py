@@ -100,11 +100,15 @@ def write_flattened_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-
-        # ── PropertyInfo Lookup ──────────────────────────────────────
-        p_number, sqft = lookup_property_info(property_address)
-        if p_number: ws["G3"] = p_number
-        if sqft:     ws["G7"] = sqft
+        # ✅ Lookup PropertyInfo.xlsx in root folder for G3 and G7
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            match = prop_df[prop_df[2] == property_address]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+        except Exception as e:
+            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
@@ -170,6 +174,7 @@ def write_flattened_to_template(
         traceback.print_exc()
         return None, None
 
+
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -205,6 +210,15 @@ def write_multiple_applicants_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
+        # ✅ Lookup PropertyInfo.xlsx for G3 and G7
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            match = prop_df[prop_df[2] == property_address]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+        except Exception as e:
+            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
@@ -292,6 +306,7 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
