@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
+import pandas as pd 
 
 
 def calc_age(dob_str: str) -> str | int:
@@ -86,21 +87,25 @@ def write_flattened_to_template(
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
+        # Right after setting left header
+        ws.oddHeader.left.text = property_address
+
         if summary_header:
-            # ✅ Fix: Ensure Date=summary_header is written to the 3rd line of the center header
-            existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
+        existing = ws.oddHeader.center.text or ""
+        lines = existing.split("\n")
 
-            new_line = f"Date={summary_header}"
+        while len(lines) < 2:
+            lines.append("")
 
-            if len(lines) >= 3:
-                lines[2] = new_line
-            else:
-                lines += [""] * (2 - len(lines)) + [new_line]  # pad if fewer than 2 lines
+        if len(lines) == 2:
+            lines.append(f"Date={summary_header}")
+        else:
+            lines[2] = f"Date={summary_header}")
 
-            ws.oddHeader.center.text = "\n".join(lines)
+        ws.oddHeader.center.text = "\n".join(lines)
 
-                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+
+        # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
@@ -206,21 +211,24 @@ def write_multiple_applicants_to_template(
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
+         # Right after setting left header
+        ws.oddHeader.left.text = property_address
+
         if summary_header:
-            # ✅ Fix: Ensure Date=summary_header is written to the 3rd line of the center header
-            existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
+        existing = ws.oddHeader.center.text or ""
+        lines = existing.split("\n")
 
-            new_line = f"Date={summary_header}"
+        while len(lines) < 2:
+            lines.append("")
 
-            if len(lines) >= 3:
-                lines[2] = new_line
-            else:
-                lines += [""] * (2 - len(lines)) + [new_line]  # pad to ensure 3 lines
+        if len(lines) == 2:
+            lines.append(f"Date={summary_header}")
+        else:
+            lines[2] = f"Date={summary_header}")
 
-            ws.oddHeader.center.text = "\n".join(lines)
+        ws.oddHeader.center.text = "\n".join(lines)
 
-                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+        # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
