@@ -118,6 +118,8 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '    }\n'
                 '  ]\n'
                 "}"
+                '   "G. Animals": "If this section is present, extract all animals listed below the line 'If yes, list all animals to be kept on the Property'. Include Type and Breed, Name, Color, Weight, Age in Yrs, Gender, and other columns if available (e.g., Neutered, Bite History, Rabies, Assistance). Return as a structured list of dicts."
+
             )
         },
         {"role": "user", "content": image_parts}
