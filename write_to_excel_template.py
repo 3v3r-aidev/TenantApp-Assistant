@@ -100,34 +100,24 @@ def write_flattened_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-...
+                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
-# Property Info Lookup (G3 and G7)
-try:
-    prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            # Build lowercase 3-word prefix for the current address
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
 
-    # Clean and normalize the input address to first 3 words
-    def first_three_words(text):
-        return " ".join(re.sub(r"[^\w\s]", "", text).lower().split()[:3])
+            # Create a mask where Column-C’s 3-word prefix matches
+            mask = prop_df[2].fillna("").str.lower().apply(
+                lambda x: " ".join(x.split()[:3])
+            ) == addr_prefix
 
-    prop_address_normalized = first_three_words(property_address)
-
-    match_row = None
-    for _, row in prop_df.iterrows():
-        if len(row) >= 4:
-            candidate = first_three_words(str(row[2]))
-            if candidate == prop_address_normalized:
-                match_row = row
-                break
-
-    if match_row is not None:
-        ws["G3"] = match_row[1]  # Column B
-        ws["G7"] = match_row[3]  # Column D
-    else:
-        print(f"⚠️ No matching property found for: {property_address}")
-
-except Exception as e:
-    print(f"❌ Error reading PropertyInfo.xlsx: {e}")
+            match = prop_df[mask]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+        except Exception as e:
+            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
 
         # ── Representative ──────────────────────────────────────────
@@ -230,37 +220,24 @@ def write_multiple_applicants_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-        import pandas as pd
-import re
+                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
-...
+            # Build lowercase 3-word prefix for the current address
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
 
-# Property Info Lookup (G3 and G7)
-try:
-    prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            # Create a mask where Column-C’s 3-word prefix matches
+            mask = prop_df[2].fillna("").str.lower().apply(
+                lambda x: " ".join(x.split()[:3])
+            ) == addr_prefix
 
-    # Clean and normalize the input address to first 3 words
-    def first_three_words(text):
-        return " ".join(re.sub(r"[^\w\s]", "", text).lower().split()[:3])
-
-    prop_address_normalized = first_three_words(property_address)
-
-    match_row = None
-    for _, row in prop_df.iterrows():
-        if len(row) >= 4:
-            candidate = first_three_words(str(row[2]))
-            if candidate == prop_address_normalized:
-                match_row = row
-                break
-
-    if match_row is not None:
-        ws["G3"] = match_row[1]  # Column B
-        ws["G7"] = match_row[3]  # Column D
-    else:
-        print(f"⚠️ No matching property found for: {property_address}")
-
-except Exception as e:
-    print(f"❌ Error reading PropertyInfo.xlsx: {e}")
+            match = prop_df[mask]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+        except Exception as e:
+            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
@@ -442,35 +419,31 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-        # ANIMALS → B13
+    # ANIMALS → B13
     animal_lines = []
-    animals_raw = flat_data.get("G. Animals", [])
-
-    if isinstance(animals_raw, list):
-        for a in animals_raw:
+    if isinstance(flat_data.get("G. Animals"), list):
+        for a in flat_data["G. Animals"]:
             if not isinstance(a, dict):
                 continue
             line = " | ".join(
-                f"{label}: {a.get(key, '').strip()}"
-                for label, key in [
+                f"{label}: {a.get(key)}" for label, key in [
                     ("Type & Breed", "Type and Breed"),
                     ("Name", "Name"),
                     ("Color", "Color"),
                     ("Weight", "Weight"),
                     ("Age", "Age in Yrs"),
-                    ("Gender", "Gender"),
-                ]
-                if a.get(key)
+                    ("Gender", "Gender")
+                ] if a.get(key)
             )
             if line:
                 animal_lines.append(line)
     else:
-        # Optional fallback if 'G. Animals' is not a list (e.g., string field)
-        fallback = str(flat_data.get("Animal Details", "")).strip()
-        if fallback:
-            animal_lines.append(fallback)
-
+        # Fallback to simple fields if structured list absent
+        default_animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+        if isinstance(default_animals, str) and default_animals.strip():
+            animal_lines.append(default_animals.strip())
     animals = "\n".join(animal_lines)
+
 
     # Field-to-cell map
     write_map = {
@@ -490,4 +463,3 @@ def write_to_summary_template(
         ws[cell] = value
 
     wb.save(output_path)
-
