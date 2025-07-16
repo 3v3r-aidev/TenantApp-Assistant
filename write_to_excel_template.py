@@ -100,25 +100,23 @@ def write_flattened_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+                    # ✅ Match PropertyInfo.xlsx by first 3 words of address → G3 (col B), G7 (col D)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            prop_df = prop_df.fillna("")
 
-            # Build lowercase 3-word prefix for the current address
-            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+            def get_first_three_words(s):
+                return " ".join(str(s).strip().lower().split()[:3])
 
-            # Create a mask where Column-C’s 3-word prefix matches
-            mask = prop_df[2].fillna("").str.lower().apply(
-                lambda x: " ".join(x.split()[:3])
-            ) == addr_prefix
+            address_key = get_first_three_words(property_address)
 
-            match = prop_df[mask]
-            if not match.empty:
-                ws["G3"] = match.iloc[0, 1]  # Column B → G3
-                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+            matched_row = prop_df[prop_df[2].apply(get_first_three_words) == address_key]
+
+            if not matched_row.empty:
+                ws["G3"] = matched_row.iloc[0, 1]  # Column B → G3
+                ws["G7"] = matched_row.iloc[0, 3]  # Column D → G7
         except Exception as e:
-            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
-
+            print(f"Warning: PropertyInfo.xlsx lookup failed: {e}")
 
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
@@ -220,24 +218,24 @@ def write_multiple_applicants_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+                        # ✅ Match PropertyInfo.xlsx by first 3 words of address → G3 (col B), G7 (col D)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            prop_df = prop_df.fillna("")
 
-            # Build lowercase 3-word prefix for the current address
-            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+            def get_first_three_words(s):
+                return " ".join(str(s).strip().lower().split()[:3])
 
-            # Create a mask where Column-C’s 3-word prefix matches
-            mask = prop_df[2].fillna("").str.lower().apply(
-                lambda x: " ".join(x.split()[:3])
-            ) == addr_prefix
+            address_key = get_first_three_words(property_address)
 
-            match = prop_df[mask]
-            if not match.empty:
-                ws["G3"] = match.iloc[0, 1]  # Column B → G3
-                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+            matched_row = prop_df[prop_df[2].apply(get_first_three_words) == address_key]
+
+            if not matched_row.empty:
+                ws["G3"] = matched_row.iloc[0, 1]  # Column B → G3
+                ws["G7"] = matched_row.iloc[0, 3]  # Column D → G7
         except Exception as e:
-            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
+            print(f"Warning: PropertyInfo.xlsx lookup failed: {e}")
+
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
@@ -419,31 +417,35 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-    # ANIMALS → B13
+        # ANIMALS → B13
     animal_lines = []
-    if isinstance(flat_data.get("G. Animals"), list):
-        for a in flat_data["G. Animals"]:
+    animals_raw = flat_data.get("G. Animals", [])
+
+    if isinstance(animals_raw, list):
+        for a in animals_raw:
             if not isinstance(a, dict):
                 continue
             line = " | ".join(
-                f"{label}: {a.get(key)}" for label, key in [
+                f"{label}: {a.get(key, '').strip()}"
+                for label, key in [
                     ("Type & Breed", "Type and Breed"),
                     ("Name", "Name"),
                     ("Color", "Color"),
                     ("Weight", "Weight"),
                     ("Age", "Age in Yrs"),
-                    ("Gender", "Gender")
-                ] if a.get(key)
+                    ("Gender", "Gender"),
+                ]
+                if a.get(key)
             )
             if line:
                 animal_lines.append(line)
     else:
-        # Fallback to simple fields if structured list absent
-        default_animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
-        if isinstance(default_animals, str) and default_animals.strip():
-            animal_lines.append(default_animals.strip())
-    animals = "\n".join(animal_lines)
+        # Optional fallback if 'G. Animals' is not a list (e.g., string field)
+        fallback = str(flat_data.get("Animal Details", "")).strip()
+        if fallback:
+            animal_lines.append(fallback)
 
+    animals = "\n".join(animal_lines)
 
     # Field-to-cell map
     write_map = {
