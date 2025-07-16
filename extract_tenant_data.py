@@ -175,6 +175,8 @@ def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
     return cleaned
 
 
+from typing import Dict  # ✅ Required for function signature
+
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
     employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
@@ -246,6 +248,18 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         if any(str(a.get(k, "") or "").strip() for k in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"]):
             cleaned_animals.append(a)
     no_of_animals = len(cleaned_animals)
+
+    # Format cleaned animals into multi-line summary for Excel (e.g., B13)
+    animal_lines = []
+    for a in cleaned_animals:
+        parts = []
+        for key in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"]:
+            val = str(a.get(key, "")).strip()
+            if val:
+                parts.append(f"{key}: {val}")
+        if parts:
+            animal_lines.append(" | ".join(parts))
+    animal_summary = "\n".join(animal_lines) if animal_lines else ""
     # ----------------------------
 
     flat = {
@@ -288,13 +302,11 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "No of Children": children_count,
         "No of Occupants": total_occupants,
         "No of Animals": no_of_animals,
-        "G. Animals": cleaned_animals  # ✅ Added this line
+        "G. Animals": cleaned_animals,
+        "Animal Summary": animal_summary  # ✅ Now flattened and ready for writing to B13
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
-
-
-
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
 
