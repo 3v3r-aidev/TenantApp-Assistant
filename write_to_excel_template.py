@@ -87,9 +87,19 @@ def write_flattened_to_template(
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
         if summary_header:
+            # ✅ Fix: Ensure Date=summary_header is written to the 3rd line of the center header
             existing = ws.oddHeader.center.text or ""
             lines = existing.split("\n")
-            ws.oddHeader.center.text = "\n".join(lines[:2] + [f"Date={summary_header}"])
+
+            new_line = f"Date={summary_header}"
+
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]  # pad if fewer than 2 lines
+
+            ws.oddHeader.center.text = "\n".join(lines)
+
 
         # ── PropertyInfo Lookup ──────────────────────────────────────
         p_number, sqft = lookup_property_info(property_address)
@@ -182,10 +192,19 @@ def write_multiple_applicants_to_template(
         ws.oddHeader.left.text = property_address
 
         if summary_header:
+            # ✅ Fix: Ensure Date=summary_header is written to the 3rd line of the center header
             existing = ws.oddHeader.center.text or ""
-            ws.oddHeader.center.text = "\n".join(
-                (existing.split("\n")[:2]) + [f"Date={summary_header}"]
-            )
+            lines = existing.split("\n")
+
+            new_line = f"Date={summary_header}"
+
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]  # pad to ensure 3 lines
+
+            ws.oddHeader.center.text = "\n".join(lines)
+
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
