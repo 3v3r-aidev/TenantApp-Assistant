@@ -63,7 +63,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '  "Applicant\'s Current Address": {\n'
                 '    "Address": string | null,\n'
                 '    "Phone:Day": string | null,\n'
-                '    "Landlord or Property Manager\'s Name": string | null\n'
+                '    "Landlord or Property Manager\'s Name": string | null,\n'
                 '    "Rent": string | null\n'
                 '  },\n'
                 '  "IDType": string | null,\n'
@@ -117,11 +117,15 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '      "Gender": string | null\n'
                 '    }\n'
                 '  ]\n'
-                "}"
-                 "Instruction for G. Animals: If this section is present, extract all animals listed below the line "
-                "'If yes, list all animals to be kept on the Property'. Include Type and Breed, Name, Color, Weight, Age in Yrs, "
-                "Gender, and any additional columns if available (e.g., Neutered, Bite History, Rabies, Assistance). "
+                '}\n\n'
+                "Instruction for G. Animals: If this section is present, extract all animals listed below the line "
+                "'If yes, list all animals to be kept on the Property'. Include Type and Breed, Name, Color, Weight, "
+                "Age in Yrs, Gender, and any additional columns if available (e.g., Neutered, Bite History, Rabies, Assistance). "
                 "Return as a structured list of dictionaries."
+            )
+        },
+        {"role": "user", "content": image_parts}
+    ]
 
     try:
         response = openai.chat.completions.create(
