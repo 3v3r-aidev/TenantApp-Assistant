@@ -118,9 +118,9 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '    }\n'
                 '  ]\n'
                 '}\n\n'
-                "Instruction for G. Animals: If this section is present, extract all animals listed below the line "
-                "'If yes, list all animals to be kept on the Property'. Include Type and Breed, Name, Color, Weight, "
-                "Age in Yrs, Gender, and any additional columns if available (e.g., Neutered, Bite History, Rabies, Assistance). "
+                "Instruction for G. Animals:If the field 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?' has a checkbox values of Yes: "
+                "'Go to the field, 'If yes, list all animals to be kept on the Property': Extract Type and Breed, Name, Color, Weight, "
+                "Age in Yrs, and Gender."
                 "Return as a structured list of dictionaries."
             )
         },
