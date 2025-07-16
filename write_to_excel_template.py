@@ -90,10 +90,10 @@ def write_flattened_to_template(
         # ✅ Set center header with 3 lines
         if summary_header:
             ws.oddHeader.center.text = (
-            "Rental Application Checklist\n"
-            "Processed by: Daniela\n"
-            f"Date={summary_header}"
-        )
+                "Rental Application Checklist\n"
+                "Processed by: Daniela\n"
+                f"Date={summary_header}"
+            )
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
@@ -153,12 +153,24 @@ def write_flattened_to_template(
         ws["F34"] = "\n".join(vehicle_lines) if vehicle_lines else ""
         ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-        # ── Vehicle Monthly Payment (Sum or single) ─────────────────
+        # ── Vehicle Monthly Payment (Sum or single, now handles non-numeric) ──
         v_payments = str(data.get("Vehicle Monthly Payment", "")).split(",")
         cleaned_values = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
-        numeric_values = [float(p) for p in cleaned_values if p.replace(".", "", 1).isdigit()]
-        total_payment = sum(numeric_values)
-        ws["F35"] = total_payment if len(numeric_values) > 1 else (numeric_values[0] if numeric_values else "")
+
+        numeric_values = []
+        for p in cleaned_values:
+            try:
+                numeric_values.append(float(p))
+            except:
+                continue
+
+        if numeric_values:
+            total_payment = sum(numeric_values)
+            ws["F35"] = total_payment if len(numeric_values) > 1 else numeric_values[0]
+        else:
+            # If no numeric payments, write first non-empty string (e.g. "Paid Off")
+            non_numeric = [p for p in cleaned_values if p]
+            ws["F35"] = non_numeric[0] if non_numeric else ""
 
         # ── Save to BytesIO ─────────────────────────────────────────
         output = BytesIO()
@@ -177,6 +189,7 @@ def write_flattened_to_template(
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
@@ -202,27 +215,22 @@ def write_multiple_applicants_to_template(
         # ✅ Set center header with 3 lines
         if summary_header:
             ws.oddHeader.center.text = (
-            "Rental Application Checklist\n"
-            "Processed by: Daniela\n"
-            f"Date={summary_header}"
-        )
+                "Rental Application Checklist\n"
+                "Processed by: Daniela\n"
+                f"Date={summary_header}"
+            )
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-
-            # Build lowercase 3-word prefix for the current address
             addr_prefix = " ".join(property_address.strip().lower().split()[:3])
-
-            # Create a mask where Column-C’s 3-word prefix matches
             mask = prop_df[2].fillna("").str.lower().apply(
                 lambda x: " ".join(x.split()[:3])
             ) == addr_prefix
-
             match = prop_df[mask]
             if not match.empty:
-                ws["G3"] = match.iloc[0, 1]  # Column B → G3
-                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+                ws["G3"] = match.iloc[0, 1]
+                ws["G7"] = match.iloc[0, 3]
         except Exception as e:
             print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
@@ -243,7 +251,6 @@ def write_multiple_applicants_to_template(
             if not hasattr(row_series, "to_dict"):
                 raise TypeError(f"Row {idx} must be Series, got {type(row_series)}")
 
-            # ✅ Normalize each row
             row = normalize_all_dates(row_series.to_dict())
             col = col_starts[idx]
 
@@ -264,13 +271,11 @@ def write_multiple_applicants_to_template(
             write(11, row.get("Landlord Phone"))
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
-            write(15, f"{row.get('Employment Verification Contact', '')} "
-                      f"{row.get('Employer Phone', '')}".strip())
+            write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
             write(16, row.get("Start Date"))
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            # Vehicle info (multi-line)
             v_types = str(row.get("Vehicle Type", "") or "").split(",")
             v_makes = str(row.get("Vehicle Make", "") or "").split(",")
             v_models = str(row.get("Vehicle Model", "") or "").split(",")
@@ -286,12 +291,23 @@ def write_multiple_applicants_to_template(
             ws[vehicle_cell] = "\n".join(vehicle_lines) if vehicle_lines else ""
             ws[vehicle_cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-            # Vehicle Monthly Payment (sum or single)
+            # ✅ Vehicle Monthly Payment: robust non-numeric handling
             v_payments = str(row.get("Vehicle Monthly Payment", "")).split(",")
             cleaned_vals = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
-            numeric_vals = [float(p) for p in cleaned_vals if p.replace(".", "", 1).isdigit()]
-            total_payment = sum(numeric_vals) if len(numeric_vals) > 1 else (numeric_vals[0] if numeric_vals else "")
-            write(21, total_payment)
+
+            numeric_vals = []
+            for p in cleaned_vals:
+                try:
+                    numeric_vals.append(float(p))
+                except:
+                    continue
+
+            if numeric_vals:
+                total_payment = sum(numeric_vals)
+                write(21, total_payment if len(numeric_vals) > 1 else numeric_vals[0])
+            else:
+                non_numeric = [p for p in cleaned_vals if p]
+                write(21, non_numeric[0] if non_numeric else "")
 
         output = BytesIO()
         wb.save(output)
@@ -312,6 +328,7 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
