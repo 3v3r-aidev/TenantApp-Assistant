@@ -130,6 +130,7 @@ if os.path.exists(EXTRACTED_DATA_PATH):
     )
 
 # Save to Tenant Template
+# --- Save to Tenant Template ---
 if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
     selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
     if selected_df.empty:
@@ -140,15 +141,15 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
             st.sidebar.warning(f"{template_to_use} not found.")
         else:
             try:
-                # Write Tenant Template
+                # ✅ Write to Tenant Template (final)
                 output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
                 st.session_state["final_output_bytes"] = output_bytes
                 st.session_state["final_filename"] = download_filename
 
-                # Ensure directory exists for SUMMARY_TEMPLATE_PATH (if using subfolders)
+                # ✅ Ensure directory exists for summary
                 os.makedirs(os.path.dirname(SUMMARY_TEMPLATE_PATH), exist_ok=True)
 
-                # Write Summary Template directly to SUMMARY_TEMPLATE_PATH
+                # ✅ Write Summary Template directly
                 first_applicant = selected_df.iloc[0].to_dict()
                 write_to_summary_template(
                     flat_data=first_applicant,
@@ -156,26 +157,24 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                     summary_template_path=SUMMARY_TEMPLATE_PATH
                 )
 
-                # Load summary file into memory
+                # ✅ Load summary as BytesIO for consistent handling
                 with open(SUMMARY_TEMPLATE_PATH, "rb") as f:
-                    summary_bytes = f.read()
+                    summary_bytes = BytesIO(f.read())
 
-                # Generate dynamic summary filename based on property address and date
+                # ✅ Filename
                 address = str(first_applicant.get("Property Address", "tenant")).strip()
                 address_clean = "_".join(re.sub(r"[^\w\s]", "", address).split()[:3]) or "tenant"
                 date_str = datetime.now().strftime("%Y%m%d")
                 summary_filename = f"{address_clean}_{date_str}_summary.xlsx".lower()
 
-                # Store summary in session state
+                # ✅ Store to session
                 st.session_state["summary_output_bytes"] = summary_bytes
                 st.session_state["summary_filename"] = summary_filename
-
                 st.session_state["trigger_validation"] = True
 
             except Exception as e:
                 st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
 
-# Download buttons
 # ✅ Final Tenant Template Download Button
 if (
     "final_output_bytes" in st.session_state 
@@ -201,8 +200,6 @@ if (
         file_name=st.session_state["summary_filename"],
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-
 
 # === Upload PDF Files ===
 uploaded_pdfs = st.file_uploader(
