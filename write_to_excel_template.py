@@ -100,23 +100,35 @@ def write_flattened_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-                    # ✅ Match PropertyInfo.xlsx by first 3 words of address → G3 (col B), G7 (col D)
-        try:
-            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-            prop_df = prop_df.fillna("")
+...
 
-            def get_first_three_words(s):
-                return " ".join(str(s).strip().lower().split()[:3])
+# Property Info Lookup (G3 and G7)
+try:
+    prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
-            address_key = get_first_three_words(property_address)
+    # Clean and normalize the input address to first 3 words
+    def first_three_words(text):
+        return " ".join(re.sub(r"[^\w\s]", "", text).lower().split()[:3])
 
-            matched_row = prop_df[prop_df[2].apply(get_first_three_words) == address_key]
+    prop_address_normalized = first_three_words(property_address)
 
-            if not matched_row.empty:
-                ws["G3"] = matched_row.iloc[0, 1]  # Column B → G3
-                ws["G7"] = matched_row.iloc[0, 3]  # Column D → G7
-        except Exception as e:
-            print(f"Warning: PropertyInfo.xlsx lookup failed: {e}")
+    match_row = None
+    for _, row in prop_df.iterrows():
+        if len(row) >= 4:
+            candidate = first_three_words(str(row[2]))
+            if candidate == prop_address_normalized:
+                match_row = row
+                break
+
+    if match_row is not None:
+        ws["G3"] = match_row[1]  # Column B
+        ws["G7"] = match_row[3]  # Column D
+    else:
+        print(f"⚠️ No matching property found for: {property_address}")
+
+except Exception as e:
+    print(f"❌ Error reading PropertyInfo.xlsx: {e}")
+
 
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
@@ -218,24 +230,37 @@ def write_multiple_applicants_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-                        # ✅ Match PropertyInfo.xlsx by first 3 words of address → G3 (col B), G7 (col D)
-        try:
-            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-            prop_df = prop_df.fillna("")
+        import pandas as pd
+import re
 
-            def get_first_three_words(s):
-                return " ".join(str(s).strip().lower().split()[:3])
+...
 
-            address_key = get_first_three_words(property_address)
+# Property Info Lookup (G3 and G7)
+try:
+    prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
-            matched_row = prop_df[prop_df[2].apply(get_first_three_words) == address_key]
+    # Clean and normalize the input address to first 3 words
+    def first_three_words(text):
+        return " ".join(re.sub(r"[^\w\s]", "", text).lower().split()[:3])
 
-            if not matched_row.empty:
-                ws["G3"] = matched_row.iloc[0, 1]  # Column B → G3
-                ws["G7"] = matched_row.iloc[0, 3]  # Column D → G7
-        except Exception as e:
-            print(f"Warning: PropertyInfo.xlsx lookup failed: {e}")
+    prop_address_normalized = first_three_words(property_address)
 
+    match_row = None
+    for _, row in prop_df.iterrows():
+        if len(row) >= 4:
+            candidate = first_three_words(str(row[2]))
+            if candidate == prop_address_normalized:
+                match_row = row
+                break
+
+    if match_row is not None:
+        ws["G3"] = match_row[1]  # Column B
+        ws["G7"] = match_row[3]  # Column D
+    else:
+        print(f"⚠️ No matching property found for: {property_address}")
+
+except Exception as e:
+    print(f"❌ Error reading PropertyInfo.xlsx: {e}")
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
