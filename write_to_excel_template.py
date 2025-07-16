@@ -100,15 +100,25 @@ def write_flattened_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-        # ✅ Lookup PropertyInfo.xlsx in root folder for G3 and G7
+                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-            match = prop_df[prop_df[2] == property_address]
+
+            # Build lowercase 3-word prefix for the current address
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+
+            # Create a mask where Column-C’s 3-word prefix matches
+            mask = prop_df[2].fillna("").str.lower().apply(
+                lambda x: " ".join(x.split()[:3])
+            ) == addr_prefix
+
+            match = prop_df[mask]
             if not match.empty:
                 ws["G3"] = match.iloc[0, 1]  # Column B → G3
                 ws["G7"] = match.iloc[0, 3]  # Column D → G7
         except Exception as e:
             print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
+
 
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
@@ -210,10 +220,19 @@ def write_multiple_applicants_to_template(
 
             ws.oddHeader.center.text = "\n".join(lines)
 
-        # ✅ Lookup PropertyInfo.xlsx for G3 and G7
+                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-            match = prop_df[prop_df[2] == property_address]
+
+            # Build lowercase 3-word prefix for the current address
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+
+            # Create a mask where Column-C’s 3-word prefix matches
+            mask = prop_df[2].fillna("").str.lower().apply(
+                lambda x: " ".join(x.split()[:3])
+            ) == addr_prefix
+
+            match = prop_df[mask]
             if not match.empty:
                 ws["G3"] = match.iloc[0, 1]  # Column B → G3
                 ws["G7"] = match.iloc[0, 3]  # Column D → G7
