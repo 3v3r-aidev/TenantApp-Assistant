@@ -87,23 +87,23 @@ def write_flattened_to_template(
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
-        # Right after setting left header
-        ws.oddHeader.left.text = property_address
-
+        # ✅ Set center header with 3 lines
         if summary_header:
-        existing = ws.oddHeader.center.text or ""
-        lines = existing.split("\n")
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
 
-        while len(lines) < 2:
-            lines.append("")
+            # Ensure at least 2 lines exist
+            while len(lines) < 2:
+                lines.append("")
 
-        if len(lines) == 2:
-            lines.append(f"Date={summary_header}")
-        else:
-            lines[2] = f"Date={summary_header}")
+            # Append or replace 3rd line with date
+            if len(lines) == 2:
+                lines.append(f"Date={summary_header}")
+            else:
+                lines[2] = f"Date={summary_header}"
 
-        ws.oddHeader.center.text = "\n".join(lines)
-
+            # Apply new header text
+            ws.oddHeader.center.text = "\n".join(lines)
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
@@ -124,10 +124,9 @@ def write_flattened_to_template(
         except Exception as e:
             print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
-
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
-        ws["J9"]  = data.get("Rep Phone", "")
+        ws["J9"] = data.get("Rep Phone", "")
         ws["J10"] = data.get("Rep Email", "")
 
         # ── Applicant Info ──────────────────────────────────────────
@@ -151,10 +150,10 @@ def write_flattened_to_template(
         ws["F32"] = data.get("Position", "")
 
         # ── Vehicle Info (All Vehicles) ──────────────────────────────
-        v_types  = str(data.get("Vehicle Type", "")  or "").split(",")
-        v_makes  = str(data.get("Vehicle Make", "")  or "").split(",")
+        v_types = str(data.get("Vehicle Type", "") or "").split(",")
+        v_makes = str(data.get("Vehicle Make", "") or "").split(",")
         v_models = str(data.get("Vehicle Model", "") or "").split(",")
-        v_years  = str(data.get("Vehicle Year", "")  or "").split(",")
+        v_years = str(data.get("Vehicle Year", "") or "").split(",")
 
         vehicle_lines = [
             f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
@@ -190,6 +189,7 @@ def write_flattened_to_template(
         return None, None
 
 
+
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -211,22 +211,22 @@ def write_multiple_applicants_to_template(
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
-         # Right after setting left header
-        ws.oddHeader.left.text = property_address
-
+        # ✅ Set center header with 3-line support
         if summary_header:
-        existing = ws.oddHeader.center.text or ""
-        lines = existing.split("\n")
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
 
-        while len(lines) < 2:
-            lines.append("")
+            # Ensure at least 2 lines
+            while len(lines) < 2:
+                lines.append("")
 
-        if len(lines) == 2:
-            lines.append(f"Date={summary_header}")
-        else:
-            lines[2] = f"Date={summary_header}")
+            # Append or replace the 3rd line with summary header
+            if len(lines) == 2:
+                lines.append(f"Date={summary_header}")
+            else:
+                lines[2] = f"Date={summary_header}"
 
-        ws.oddHeader.center.text = "\n".join(lines)
+            ws.oddHeader.center.text = "\n".join(lines)
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
@@ -292,10 +292,10 @@ def write_multiple_applicants_to_template(
             write(19, row.get("Position"))
 
             # Vehicle info (multi-line)
-            v_types  = str(row.get("Vehicle Type", "")  or "").split(",")
-            v_makes  = str(row.get("Vehicle Make", "")  or "").split(",")
+            v_types = str(row.get("Vehicle Type", "") or "").split(",")
+            v_makes = str(row.get("Vehicle Make", "") or "").split(",")
             v_models = str(row.get("Vehicle Model", "") or "").split(",")
-            v_years  = str(row.get("Vehicle Year", "")  or "").split(",")
+            v_years = str(row.get("Vehicle Year", "") or "").split(",")
 
             vehicle_lines = [
                 f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
@@ -333,7 +333,6 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
-
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
