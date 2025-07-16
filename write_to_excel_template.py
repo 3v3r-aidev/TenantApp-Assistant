@@ -89,21 +89,11 @@ def write_flattened_to_template(
 
         # ✅ Set center header with 3 lines
         if summary_header:
-            existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
-
-            # Ensure at least 2 lines exist
-            while len(lines) < 2:
-                lines.append("")
-
-            # Append or replace 3rd line with date
-            if len(lines) == 2:
-                lines.append(f"Date={summary_header}")
-            else:
-                lines[2] = f"Date={summary_header}"
-
-            # Apply new header text
-            ws.oddHeader.center.text = "\n".join(lines)
+            ws.oddHeader.center.text = (
+            "Rental Application Checklist\n"
+            "Processed by: Daniela\n"
+            f"Date={summary_header}"
+        )
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
@@ -188,8 +178,6 @@ def write_flattened_to_template(
         traceback.print_exc()
         return None, None
 
-
-
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -211,22 +199,13 @@ def write_multiple_applicants_to_template(
         property_address = first_row.get("Property Address", "")
         ws.oddHeader.left.text = property_address
 
-        # ✅ Set center header with 3-line support
+        # ✅ Set center header with 3 lines
         if summary_header:
-            existing = ws.oddHeader.center.text or ""
-            lines = existing.split("\n")
-
-            # Ensure at least 2 lines
-            while len(lines) < 2:
-                lines.append("")
-
-            # Append or replace the 3rd line with summary header
-            if len(lines) == 2:
-                lines.append(f"Date={summary_header}")
-            else:
-                lines[2] = f"Date={summary_header}"
-
-            ws.oddHeader.center.text = "\n".join(lines)
+            ws.oddHeader.center.text = (
+            "Rental Application Checklist\n"
+            "Processed by: Daniela\n"
+            f"Date={summary_header}"
+        )
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
