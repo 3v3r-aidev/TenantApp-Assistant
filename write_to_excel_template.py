@@ -324,21 +324,17 @@ def write_to_summary_template(
     """
     Writes one applicant’s key facts into App_Summary_Template.xlsx.
     """
-    # ── NEW: ensure dict-like before any .get() ────────────────────────────────
     if isinstance(flat_data, dict):
         pass
-    elif hasattr(flat_data, "to_dict"):  # e.g. pandas Series/DataFrame row
+    elif hasattr(flat_data, "to_dict"):
         flat_data = flat_data.to_dict()
     else:
-        raise TypeError(
-            f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
-        )
-    # ───────────────────────────────────────────────────────────────────────────
+        raise TypeError(f"write_to_summary_template expected dict/Series, got {type(flat_data)}")
+
     flat_data = normalize_all_dates(flat_data)
     wb = load_workbook(summary_template_path)
     ws = wb.active
 
-    # Hidden _Meta sheet + counter logic (unchanged) ---------------------------
     meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
     if "_Meta" not in wb.sheetnames:
         wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
@@ -351,7 +347,6 @@ def write_to_summary_template(
     meta_ws["B1"] = counter
     ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
 
-    # ---------- numbers needed for gross / net ratio --------------------------
     rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
     gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
     try:
@@ -363,11 +358,10 @@ def write_to_summary_template(
     except:
         gross = 0
 
-    # ✅ Safe Co-applicant aggregate
     co_total = 0
     for app in flat_data.get("Co-applicants", []):
         if not isinstance(app, dict):
-            continue  # Skip if not a dict
+            continue
         val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
         try:
             co_total += float(val) if val else 0
@@ -378,10 +372,8 @@ def write_to_summary_template(
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
     net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
-       # ---------- Build vehicle and animal multiline strings -------------------
     # VEHICLES → B12
     vehicle_lines = []
-    # Preferred structured list (new spec)
     if isinstance(flat_data.get("F. Vehicle Information:"), list):
         for v in flat_data["F. Vehicle Information:"]:
             if not isinstance(v, dict):
@@ -394,10 +386,9 @@ def write_to_summary_template(
             if line:
                 vehicle_lines.append(line)
     else:
-        # Fallback to legacy separate columns
-        v_types  = str(flat_data.get("Vehicle Type", "")  or "").split(",")
-        v_years  = str(flat_data.get("Vehicle Year", "")  or "").split(",")
-        v_makes  = str(flat_data.get("Vehicle Make", "")  or "").split(",")
+        v_types = str(flat_data.get("Vehicle Type", "") or "").split(",")
+        v_years = str(flat_data.get("Vehicle Year", "") or "").split(",")
+        v_makes = str(flat_data.get("Vehicle Make", "") or "").split(",")
         v_models = str(flat_data.get("Vehicle Model", "") or "").split(",")
         for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
             line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
@@ -405,7 +396,7 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-    # ANIMALS → B13
+    # ✅ ANIMALS → B13 (updated: separate lines, wrap_text enabled)
     animal_lines = []
     if isinstance(flat_data.get("G. Animals"), list):
         for a in flat_data["G. Animals"]:
@@ -424,12 +415,16 @@ def write_to_summary_template(
             if line:
                 animal_lines.append(line)
     else:
-        # Fallback to simple fields if structured list absent
-        default_animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+        default_animals = (
+            flat_data.get("Animal Details") or
+            flat_data.get("No of Animals") or
+            flat_data.get("Pets") or
+            flat_data.get("Animals")
+        )
         if isinstance(default_animals, str) and default_animals.strip():
             animal_lines.append(default_animals.strip())
-    animals = "\n".join(animal_lines)
 
+    animals = "\n".join(animal_lines)
 
     # Field-to-cell map
     write_map = {
@@ -447,5 +442,8 @@ def write_to_summary_template(
 
     for cell, value in write_map.items():
         ws[cell] = value
+        if cell in ("B12", "B13"):
+            ws[cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
     wb.save(output_path)
+
