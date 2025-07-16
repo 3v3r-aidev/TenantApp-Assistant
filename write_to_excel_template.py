@@ -413,35 +413,92 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-    # ✅ ANIMALS → B13 (updated: separate lines, wrap_text enabled)
-    animal_lines = []
-    if isinstance(flat_data.get("G. Animals"), list):
-        for a in flat_data["G. Animals"]:
-            if not isinstance(a, dict):
-                continue
-            line = " | ".join(
-                f"{label}: {a.get(key)}" for label, key in [
-                    ("Type & Breed", "Type and Breed"),
-                    ("Name", "Name"),
-                    ("Color", "Color"),
-                    ("Weight", "Weight"),
-                    ("Age", "Age in Yrs"),
-                    ("Gender", "Gender")
-                ] if a.get(key)
-            )
-            if line:
-                animal_lines.append(line)
-    else:
-        default_animals = (
-            flat_data.get("Animal Details") or
-            flat_data.get("No of Animals") or
-            flat_data.get("Pets") or
-            flat_data.get("Animals")
-        )
-        if isinstance(default_animals, str) and default_animals.strip():
-            animal_lines.append(default_animals.strip())
+   from openpyxl import load_workbook
+from openpyxl.styles import Alignment
+from datetime import datetime
 
-    animals = "\n".join(animal_lines)
+def write_to_summary_template(
+    flat_data,
+    output_path,
+    summary_template_path="templates/App_Summary_Template.xlsx",
+) -> None:
+    """
+    Writes one applicant’s key facts into App_Summary_Template.xlsx.
+    """
+    if isinstance(flat_data, dict):
+        pass
+    elif hasattr(flat_data, "to_dict"):
+        flat_data = flat_data.to_dict()
+    else:
+        raise TypeError(f"write_to_summary_template expected dict/Series, got {type(flat_data)}")
+
+    flat_data = normalize_all_dates(flat_data)
+    wb = load_workbook(summary_template_path)
+    ws = wb.active
+
+    meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
+    if "_Meta" not in wb.sheetnames:
+        wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
+        meta_ws.sheet_state = "hidden"
+        meta_ws["A1"] = "counter"
+
+    TEST_MODE = True
+    TEST_START_VALUE = 636
+    counter = TEST_START_VALUE if TEST_MODE else (meta_ws["B1"].value or TEST_START_VALUE) + 1
+    meta_ws["B1"] = counter
+    ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
+
+    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
+    gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
+    try:
+        rent = float(rent_str) if rent_str else 0
+    except:
+        rent = 0
+    try:
+        gross = float(gross_str) if gross_str else 0
+    except:
+        gross = 0
+
+    co_total = 0
+    for app in flat_data.get("Co-applicants", []):
+        if not isinstance(app, dict):
+            continue
+        val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+        try:
+            co_total += float(val) if val else 0
+        except:
+            continue
+    net_total = gross + co_total
+
+    gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+    net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+
+    # VEHICLES → B12
+    vehicle_lines = []
+    if isinstance(flat_data.get("F. Vehicle Information:"), list):
+        for v in flat_data["F. Vehicle Information:"]:
+            if not isinstance(v, dict):
+                continue
+            line = " ".join(
+                str(v.get(k, "")).strip()
+                for k in ("Type", "Year", "Make", "Model")
+                if v.get(k)
+            ).strip()
+            if line:
+                vehicle_lines.append(line)
+    else:
+        v_types = str(flat_data.get("Vehicle Type", "") or "").split(",")
+        v_years = str(flat_data.get("Vehicle Year", "") or "").split(",")
+        v_makes = str(flat_data.get("Vehicle Make", "") or "").split(",")
+        v_models = str(flat_data.get("Vehicle Model", "") or "").split(",")
+        for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
+            line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
+            if line:
+                vehicle_lines.append(line)
+    vehicle = "\n".join(vehicle_lines)
+
+    # ✅ ANIMALS → B13 (uses pre-flattened summary)
+    animals = flat_data.get("Animal Summary", "")
 
     # Field-to-cell map
     write_map = {
@@ -460,7 +517,6 @@ def write_to_summary_template(
     for cell, value in write_map.items():
         ws[cell] = value
         if cell in ("B12", "B13"):
-            ws[cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
+            ws[cell].alignment = Alignment(wrap_text=True)
 
     wb.save(output_path)
-
