@@ -212,7 +212,7 @@ def write_multiple_applicants_to_template(
         ws = wb.active
 
         # ── Property Info ─────────────────────────────────────────────
-        property_address = data.get("Property Address", "")
+        property_address = first_row.get("Property Address", "")
         prop_str = str(property_address) if property_address is not None else ""
         ws.oddHeader.left.text = prop_str
         
