@@ -7,6 +7,7 @@ from datetime import datetime
 import re
 from io import BytesIO
 from extract_tenant_data import flatten_extracted_data, parse_gpt_output, process_pdf
+from extract_utils import extract_data_by_form_type
 from write_to_excel_template import write_multiple_applicants_to_template, write_flattened_to_template, write_to_summary_template
 from write_template_holder import write_to_template_holder
 from email.message import EmailMessage
@@ -223,7 +224,20 @@ if uploaded_pdfs:
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.read())
 
-            extracted_data, _ = process_pdf(temp_path)
+            # === Custom extraction logic ===
+            images = convert_pdf_to_images(temp_path)  # Your helper
+            text = extract_text_from_first_page(temp_path)  # Your helper
+
+            form_type = detect_form_type(text, ocr_used=False)  # set ocr_used=True for scanned
+
+            if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
+                extracted_data = extract_standard_form(images)
+            elif form_type == "handwritten_form":
+                extracted_data = extract_handwritten_form(images)
+            else:
+                st.warning(f"{filename}: Unknown or unsupported form type.")
+                continue
+
             st.session_state.batch_extracted[filename] = extracted_data
         st.success("✅ All applications extracted.")
 
@@ -242,6 +256,7 @@ if uploaded_pdfs:
             df.to_excel(EXTRACTED_DATA_PATH, index=False)
             st.success("✅ All extracted records saved.")
             st.session_state.trigger_validation = True
+
 
 # === Validation and Email Notification ===
 def is_missing(value):
