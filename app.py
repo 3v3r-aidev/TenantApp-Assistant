@@ -224,17 +224,11 @@ if uploaded_pdfs:
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.read())
 
-            # === Custom extraction logic ===
-            images = convert_pdf_to_images(temp_path)  # Your helper
-            text = extract_text_from_first_page(temp_path)  # Your helper
-
-            # Detect form type without OCR initially
-            form_type = detect_form_type(text, ocr_used=False)
-
-            # Force OCR for handwritten forms only
-            if form_type == "handwritten_form":
-                text = extract_text_from_first_page(temp_path, use_ocr=True)
-                form_type = detect_form_type(text, ocr_used=True)
+            # === Form recognition + extraction routing ===
+            images = convert_pdf_to_images(temp_path)
+            text = extract_text_from_first_page(temp_path)
+            ocr_used = len(text.strip()) < 50  # flag scanned/handwritten
+            form_type = detect_form_type(text, ocr_used=ocr_used)
 
             if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
                 extracted_data = extract_standard_form(images)
@@ -249,6 +243,7 @@ if uploaded_pdfs:
                 continue
 
             st.session_state.batch_extracted[filename] = extracted_data
+
         st.success("✅ All applications extracted.")
 
     if st.button("Save Extracted Data"):
