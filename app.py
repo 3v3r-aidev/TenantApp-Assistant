@@ -228,7 +228,13 @@ if uploaded_pdfs:
             images = convert_pdf_to_images(temp_path)  # Your helper
             text = extract_text_from_first_page(temp_path)  # Your helper
 
-            form_type = detect_form_type(text, ocr_used=False)  # set ocr_used=True for scanned
+            # Detect form type without OCR initially
+            form_type = detect_form_type(text, ocr_used=False)
+
+            # Force OCR for handwritten forms only
+            if form_type == "handwritten_form":
+                text = extract_text_from_first_page(temp_path, use_ocr=True)
+                form_type = detect_form_type(text, ocr_used=True)
 
             if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
                 extracted_data = extract_standard_form(images)
@@ -236,6 +242,10 @@ if uploaded_pdfs:
                 extracted_data = extract_handwritten_form(images)
             else:
                 st.warning(f"{filename}: Unknown or unsupported form type.")
+                continue
+
+            if "error" in extracted_data:
+                st.warning(f"{filename}: {extracted_data['error']}")
                 continue
 
             st.session_state.batch_extracted[filename] = extracted_data
