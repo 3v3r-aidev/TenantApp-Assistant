@@ -2,12 +2,11 @@ import openpyxl
 import re
 import traceback
 from openpyxl import load_workbook
-from openpyxl.styles import Alignment
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
-import pandas as pd 
+
 
 def calc_age(dob_str: str) -> str | int:
     if not dob_str:
@@ -81,23 +80,27 @@ def write_flattened_to_template(
         ws = wb.active
 
         # ── Property Info ─────────────────────────────────────────────
-        prop_address = first_row.get("Property Address", "")
-        prop_str = str(prop_address) if prop_address is not None else ""
-        ws.oddHeader.left.text = prop_str
-
+        property_address = data.get("Property Address", "")
+        ws.oddHeader.left.text = property_address
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
-        # ✅ Set center header with 3 lines
         if summary_header:
-            ws.oddHeader.center.text = (
-                "Rental Application Checklist\n"
-                "Processed by: Daniela\n"
-                f"Date={summary_header}"
-            )
+            # ✅ Fix: Ensure Date=summary_header is written to the 3rd line of the center header
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
 
-        # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+            new_line = f"Date={summary_header}"
+
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]  # pad if fewer than 2 lines
+
+            ws.oddHeader.center.text = "\n".join(lines)
+
+                # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
             prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
 
@@ -116,9 +119,10 @@ def write_flattened_to_template(
         except Exception as e:
             print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
+
         # ── Representative ──────────────────────────────────────────
         ws["F10"] = data.get("Rep Name", "")
-        ws["J9"] = data.get("Rep Phone", "")
+        ws["J9"]  = data.get("Rep Phone", "")
         ws["J10"] = data.get("Rep Email", "")
 
         # ── Applicant Info ──────────────────────────────────────────
@@ -142,10 +146,10 @@ def write_flattened_to_template(
         ws["F32"] = data.get("Position", "")
 
         # ── Vehicle Info (All Vehicles) ──────────────────────────────
-        v_types = str(data.get("Vehicle Type", "") or "").split(",")
-        v_makes = str(data.get("Vehicle Make", "") or "").split(",")
+        v_types  = str(data.get("Vehicle Type", "")  or "").split(",")
+        v_makes  = str(data.get("Vehicle Make", "")  or "").split(",")
         v_models = str(data.get("Vehicle Model", "") or "").split(",")
-        v_years = str(data.get("Vehicle Year", "") or "").split(",")
+        v_years  = str(data.get("Vehicle Year", "")  or "").split(",")
 
         vehicle_lines = [
             f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
@@ -155,24 +159,171 @@ def write_flattened_to_template(
         ws["F34"] = "\n".join(vehicle_lines) if vehicle_lines else ""
         ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-        # ── Vehicle Monthly Payment (Sum or single, now handles non-numeric) ──
+        # ── Vehicle Monthly Payment (Sum or single) ─────────────────
         v_payments = str(data.get("Vehicle Monthly Payment", "")).split(",")
         cleaned_values = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
+        numeric_values = [float(p) for p in cleaned_values if p.replace(".", "", 1).isdigit()]
+        total_payment = sum(numeric_values)
+        ws["F35"] = total_payment if len(numeric_values) > 1 else (numeric_values[0] if numeric_values else "")
 
-        numeric_values = []
-        for p in cleaned_values:
+
+        # Ratio Compuation 
+
+        # ── Gross/Net Ratio Calculation ──────────────────────────────────────
+        rent_val = data.get("Monthly Rent", "")
+        gross_val = data.get("Gross Monthly Income", "")
+
+        rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val is not None else ""
+        gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val is not None else ""
+
+        try:
+            rent = float(rent_str) if rent_str else 0
+        except:
+            rent = 0
+        try:
+            gross = float(gross_str) if gross_str else 0
+        except:
+            gross = 0
+
+# Include co-applicant income if available
+co_total = 0
+for app in data.get("Co-applicants", []):
+    if not isinstance(app, dict):
+        continue
+    val = app.get("Gross Monthly Income", "")
+    val = str(val).replace("$", "").replace(",", "").strip() if val is not None else ""
+    try:
+        co_total += float(val) if val else 0
+    except:
+        continue
+
+net_total = gross + co_total
+
+gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+net_ratio = f"{net_totaldef write_flattened_to_template(
+    data,
+    template_path="templates/Tenant_Template.xlsx",
+    summary_header=None,
+):
+    try:
+        # ✅ Normalize date fields correctly
+        data = normalize_all_dates(data)
+
+        wb = openpyxl.load_workbook(template_path)
+        ws = wb.active
+
+        # ── Property Info ─────────────────────────────────────────────
+        property_address = data.get("Property Address", "")
+        ws.oddHeader.left.text = property_address
+        ws["E3"] = property_address
+        ws["E4"] = data.get("Move-in Date", "")
+        ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
+
+        if summary_header:
+            # ✅ Ensure Date=summary_header is written to the 3rd line of the center header
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
+            new_line = f"Date={summary_header}"
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]
+            ws.oddHeader.center.text = "\n".join(lines)
+
+        # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+            mask = prop_df[2].fillna("").str.lower().apply(
+                lambda x: " ".join(x.split()[:3])
+            ) == addr_prefix
+            match = prop_df[mask]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
+        except Exception as e:
+            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
+
+        # ── Representative ──────────────────────────────────────────
+        ws["F10"] = data.get("Rep Name", "")
+        ws["J9"]  = data.get("Rep Phone", "")
+        ws["J10"] = data.get("Rep Email", "")
+
+        # ── Applicant Info ──────────────────────────────────────────
+        ws["F14"] = data.get("FullName", "")
+        ws["F15"] = data.get("Email", "")
+        ws["F16"] = data.get("PhoneNumber", "")
+        ws["F17"] = data.get("SSN", "")
+        ws["F18"] = data.get("DriverLicenseNumber", "")
+        ws["F19"] = data.get("DOB", "")
+        ws["F20"] = calc_age(data.get("DOB", ""))
+        ws["F21"] = str(data.get("No of Occupants", ""))
+        ws["F22"] = data.get("No of Children", "")
+        ws["F23"] = data.get("Applicant's Current Address", "")
+        ws["F24"] = data.get("Landlord or Property Manager's Name", "")
+        ws["F25"] = data.get("Landlord Phone", "")
+        ws["F27"] = data.get("Applicant's Current Employer", "")
+        ws["F28"] = data.get("Employer Address", "")
+        ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
+        ws["F30"] = data.get("Start Date", "")
+        ws["F31"] = data.get("Gross Monthly Income", "")
+        ws["F32"] = data.get("Position", "")
+
+        # ── Vehicle Info (All Vehicles) ──────────────────────────────
+        v_types  = str(data.get("Vehicle Type", "")  or "").split(",")
+        v_makes  = str(data.get("Vehicle Make", "")  or "").split(",")
+        v_models = str(data.get("Vehicle Model", "") or "").split(",")
+        v_years  = str(data.get("Vehicle Year", "")  or "").split(",")
+
+        vehicle_lines = [
+            f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
+            for t, m, mo, y in zip(v_types, v_makes, v_models, v_years)
+            if any([t.strip(), m.strip(), mo.strip(), y.strip()])
+        ]
+        ws["F34"] = "\n".join(vehicle_lines) if vehicle_lines else ""
+        ws["F34"].alignment = openpyxl.styles.Alignment(wrap_text=True)
+
+        # ── Vehicle Monthly Payment (Sum or single) ─────────────────
+        v_payments = str(data.get("Vehicle Monthly Payment", "")).split(",")
+        cleaned_values = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
+        numeric_values = [float(p) for p in cleaned_values if p.replace(".", "", 1).isdigit()]
+        total_payment = sum(numeric_values)
+        ws["F35"] = total_payment if len(numeric_values) > 1 else (numeric_values[0] if numeric_values else "")
+
+        # ── Gross/Net Ratio Calculation and write to J3/J4 ─────────────
+        rent_val = data.get("Monthly Rent", "")
+        gross_val = data.get("Gross Monthly Income", "")
+
+        rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val is not None else ""
+        gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val is not None else ""
+
+        try:
+            rent = float(rent_str) if rent_str else 0
+        except:
+            rent = 0
+        try:
+            gross = float(gross_str) if gross_str else 0
+        except:
+            gross = 0
+
+        co_total = 0
+        for app in data.get("Co-applicants", []):
+            if not isinstance(app, dict):
+                continue
+            val = app.get("Gross Monthly Income", "")
+            val = str(val).replace("$", "").replace(",", "").strip() if val is not None else ""
             try:
-                numeric_values.append(float(p))
+                co_total += float(val) if val else 0
             except:
                 continue
 
-        if numeric_values:
-            total_payment = sum(numeric_values)
-            ws["F35"] = total_payment if len(numeric_values) > 1 else numeric_values[0]
-        else:
-            # If no numeric payments, write first non-empty string (e.g. "Paid Off")
-            non_numeric = [p for p in cleaned_values if p]
-            ws["F35"] = non_numeric[0] if non_numeric else ""
+        net_total = gross + co_total
+
+        gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+        net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+
+        ws["J3"] = gross_ratio
+        ws["J4"] = net_ratio
 
         # ── Save to BytesIO ─────────────────────────────────────────
         output = BytesIO()
@@ -180,18 +331,12 @@ def write_flattened_to_template(
         output.seek(0)
 
         def generate_filename(address):
-           # ensure property_address is string
-            addr_str = str(property_address) if property_address is not None else ""
-            cleaned = re.sub(r"[^\w\s]", "", addr_str)
+            cleaned = re.sub(r"[^\w\s]", "", str(address))
             words = cleaned.strip().split()
-            word_part = (
-                "_".join(words[1:3]) if len(words) >= 3
-                else "_".join(words[:2]) if len(words) >= 2
-                else "tenant"
-           )
-           filename = f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx".lower()
+            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
+            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
-           return output, generate_filename(property_address)
+        return output, generate_filename(property_address)
 
     except Exception:
         print("❌ Error in write_flattened_to_template:")
@@ -217,22 +362,19 @@ def write_multiple_applicants_to_template(
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        # ── Property Info ─────────────────────────────────────────────
         property_address = first_row.get("Property Address", "")
-        prop_str = str(property_address) if property_address is not None else ""
-        ws.oddHeader.left.text = prop_str
-        
-        ws["E3"] = property_address
-        ws["E4"] = first_row.get("Move-in Date", "")
-        ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
+        ws.oddHeader.left.text = property_address
 
-        # ✅ Set center header with 3 lines
         if summary_header:
-            ws.oddHeader.center.text = (
-                "Rental Application Checklist\n"
-                "Processed by: Daniela\n"
-                f"Date={summary_header}"
-            )
+            # ✅ Ensure Date=summary_header is written to the 3rd line of the center header
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
+            new_line = f"Date={summary_header}"
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]
+            ws.oddHeader.center.text = "\n".join(lines)
 
         # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
         try:
@@ -243,8 +385,8 @@ def write_multiple_applicants_to_template(
             ) == addr_prefix
             match = prop_df[mask]
             if not match.empty:
-                ws["G3"] = match.iloc[0, 1]
-                ws["G7"] = match.iloc[0, 3]
+                ws["G3"] = match.iloc[0, 1]  # Column B → G3
+                ws["G7"] = match.iloc[0, 3]  # Column D → G7
         except Exception as e:
             print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
@@ -255,6 +397,27 @@ def write_multiple_applicants_to_template(
         ws["J9"] = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
+        # ── Gross Ratio Calculation (only) ──────────────────────────────
+        rent_val = first_row.get("Monthly Rent", "")
+        gross_val = first_row.get("Gross Monthly Income", "")
+
+        rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val is not None else ""
+        gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val is not None else ""
+
+        try:
+            rent = float(rent_str) if rent_str else 0
+        except:
+            rent = 0
+        try:
+            gross = float(gross_str) if gross_str else 0
+        except:
+            gross = 0
+
+        gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+        ws["J3"] = gross_ratio
+        ws["J4"] = ""
+
+        # ── Fill applicant columns ──────────────────────────────────────
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
         start_row = 14
 
@@ -290,10 +453,10 @@ def write_multiple_applicants_to_template(
             write(17, row.get("Gross Monthly Income"))
             write(19, row.get("Position"))
 
-            v_types = str(row.get("Vehicle Type", "") or "").split(",")
-            v_makes = str(row.get("Vehicle Make", "") or "").split(",")
+            v_types  = str(row.get("Vehicle Type", "") or "").split(",")
+            v_makes  = str(row.get("Vehicle Make", "") or "").split(",")
             v_models = str(row.get("Vehicle Model", "") or "").split(",")
-            v_years = str(row.get("Vehicle Year", "") or "").split(",")
+            v_years  = str(row.get("Vehicle Year", "") or "").split(",")
 
             vehicle_lines = [
                 f"{t.strip()} {m.strip()} {mo.strip()} {y.strip()}".strip()
@@ -305,23 +468,11 @@ def write_multiple_applicants_to_template(
             ws[vehicle_cell] = "\n".join(vehicle_lines) if vehicle_lines else ""
             ws[vehicle_cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
 
-            # ✅ Vehicle Monthly Payment: robust non-numeric handling
             v_payments = str(row.get("Vehicle Monthly Payment", "")).split(",")
             cleaned_vals = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
-
-            numeric_vals = []
-            for p in cleaned_vals:
-                try:
-                    numeric_vals.append(float(p))
-                except:
-                    continue
-
-            if numeric_vals:
-                total_payment = sum(numeric_vals)
-                write(21, total_payment if len(numeric_vals) > 1 else numeric_vals[0])
-            else:
-                non_numeric = [p for p in cleaned_vals if p]
-                write(21, non_numeric[0] if non_numeric else "")
+            numeric_vals = [float(p) for p in cleaned_vals if p.replace(".", "", 1).isdigit()]
+            total_payment = sum(numeric_vals) if len(numeric_vals) > 1 else (numeric_vals[0] if numeric_vals else "")
+            write(21, total_payment)
 
         output = BytesIO()
         wb.save(output)
@@ -343,7 +494,6 @@ def write_multiple_applicants_to_template(
         traceback.print_exc()
         return None, None
 
-
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -355,17 +505,21 @@ def write_to_summary_template(
     """
     Writes one applicant’s key facts into App_Summary_Template.xlsx.
     """
+    # ── Ensure dict-like before any .get() ────────────────────────────────
     if isinstance(flat_data, dict):
         pass
-    elif hasattr(flat_data, "to_dict"):
+    elif hasattr(flat_data, "to_dict"):  # e.g. pandas Series/DataFrame row
         flat_data = flat_data.to_dict()
     else:
-        raise TypeError(f"write_to_summary_template expected dict/Series, got {type(flat_data)}")
+        raise TypeError(
+            f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
+        )
 
     flat_data = normalize_all_dates(flat_data)
     wb = load_workbook(summary_template_path)
     ws = wb.active
 
+    # Hidden _Meta sheet + counter logic
     meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
     if "_Meta" not in wb.sheetnames:
         wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
@@ -378,8 +532,13 @@ def write_to_summary_template(
     meta_ws["B1"] = counter
     ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
 
-    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
-    gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
+    # ---------- Safely parse rent and income --------------------------
+    rent_val = flat_data.get("Monthly Rent", "")
+    rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val is not None else ""
+
+    gross_val = flat_data.get("Gross Monthly Income", "")
+    gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val is not None else ""
+
     try:
         rent = float(rent_str) if rent_str else 0
     except:
@@ -389,20 +548,24 @@ def write_to_summary_template(
     except:
         gross = 0
 
+    # ---------- Safe Co-applicant aggregate ---------------------------
     co_total = 0
     for app in flat_data.get("Co-applicants", []):
         if not isinstance(app, dict):
             continue
-        val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+        val = app.get("Gross Monthly Income", "")
+        val = str(val).replace("$", "").replace(",", "").strip() if val is not None else ""
         try:
             co_total += float(val) if val else 0
         except:
             continue
+
     net_total = gross + co_total
 
     gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
     net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
+    # ---------- Build vehicle and animal multiline strings -------------------
     # VEHICLES → B12
     vehicle_lines = []
     if isinstance(flat_data.get("F. Vehicle Information:"), list):
@@ -417,9 +580,9 @@ def write_to_summary_template(
             if line:
                 vehicle_lines.append(line)
     else:
-        v_types = str(flat_data.get("Vehicle Type", "") or "").split(",")
-        v_years = str(flat_data.get("Vehicle Year", "") or "").split(",")
-        v_makes = str(flat_data.get("Vehicle Make", "") or "").split(",")
+        v_types  = str(flat_data.get("Vehicle Type", "")  or "").split(",")
+        v_years  = str(flat_data.get("Vehicle Year", "")  or "").split(",")
+        v_makes  = str(flat_data.get("Vehicle Make", "")  or "").split(",")
         v_models = str(flat_data.get("Vehicle Model", "") or "").split(",")
         for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
             line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
@@ -427,86 +590,50 @@ def write_to_summary_template(
                 vehicle_lines.append(line)
     vehicle = "\n".join(vehicle_lines)
 
-def write_to_summary_template(
-    flat_data,
-    output_path,
-    summary_template_path="templates/App_Summary_Template.xlsx",
-) -> None:
-    """
-    Writes one applicant’s key facts into App_Summary_Template.xlsx.
-    """
-    if isinstance(flat_data, dict):
-        pass
-    elif hasattr(flat_data, "to_dict"):
-        flat_data = flat_data.to_dict()
-    else:
-        raise TypeError(f"write_to_summary_template expected dict/Series, got {type(flat_data)}")
-
-    flat_data = normalize_all_dates(flat_data)
-    wb = load_workbook(summary_template_path)
-    ws = wb.active
-
-    meta_ws = wb["_Meta"] if "_Meta" in wb.sheetnames else wb.create_sheet("_Meta")
-    if "_Meta" not in wb.sheetnames:
-        wb.move_sheet(meta_ws, offset=len(wb.sheetnames))
-        meta_ws.sheet_state = "hidden"
-        meta_ws["A1"] = "counter"
-
-    TEST_MODE = True
-    TEST_START_VALUE = 636
-    counter = TEST_START_VALUE if TEST_MODE else (meta_ws["B1"].value or TEST_START_VALUE) + 1
-    meta_ws["B1"] = counter
-    ws["B1"] = datetime.now().strftime(f"APP-{counter}-%Y-%m-%d-%H%M%S")
-
-    rent_str = flat_data.get("Monthly Rent", "").replace("$", "").replace(",", "").strip()
-    gross_str = flat_data.get("Gross Monthly Income", "").replace("$", "").replace(",", "").strip()
-    try:
-        rent = float(rent_str) if rent_str else 0
-    except:
-        rent = 0
-    try:
-        gross = float(gross_str) if gross_str else 0
-    except:
-        gross = 0
-
-    co_total = 0
-    for app in flat_data.get("Co-applicants", []):
-        if not isinstance(app, dict):
-            continue
-        val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
-        try:
-            co_total += float(val) if val else 0
-        except:
-            continue
-    net_total = gross + co_total
-
-    gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
-    net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
-
-    # VEHICLES → B12
-    vehicle_lines = []
-    if isinstance(flat_data.get("F. Vehicle Information:"), list):
-        for v in flat_data["F. Vehicle Information:"]:
-            if not isinstance(v, dict):
+    # ANIMALS → B13
+    animal_lines = []
+    if isinstance(flat_data.get("G. Animals"), list):
+        for a in flat_data["G. Animals"]:
+            if not isinstance(a, dict):
                 continue
-            line = " ".join(
-                str(v.get(k, "")).strip()
-                for k in ("Type", "Year", "Make", "Model")
-                if v.get(k)
-            ).strip()
+            line = " | ".join(
+                f"{label}: {a.get(key)}" for label, key in [
+                    ("Type & Breed", "Type and Breed"),
+                    ("Name", "Name"),
+                    ("Color", "Color"),
+                    ("Weight", "Weight"),
+                    ("Age", "Age in Yrs"),
+                    ("Gender", "Gender")
+                ] if a.get(key)
+            )
             if line:
-                vehicle_lines.append(line)
+                animal_lines.append(line)
     else:
-        v_types = str(flat_data.get("Vehicle Type", "") or "").split(",")
-        v_years = str(flat_data.get("Vehicle Year", "") or "").split(",")
-        v_makes = str(flat_data.get("Vehicle Make", "") or "").split(",")
-        v_models = str(flat_data.get("Vehicle Model", "") or "").split(",")
-        for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
-            line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
-            if line:
-                vehicle_lines.append(line)
-    vehicle = "\n".join(vehicle_lines)
+        default_animals = flat_data.get("Animal Details", flat_data.get("No of Animals", ""))
+        if isinstance(default_animals, str) and default_animals.strip():
+            animal_lines.append(default_animals.strip())
+    animals = "\n".join(animal_lines)
 
-    # ✅ ANIMALS → B13 (uses pre-flattened summary)
-    animals = flat_data.get("Animal Summary", "")
+    # Field-to-cell map
+    write_map = {
+        "B2": flat_data.get("Property Address", ""),
+        "B3": flat_data.get("Monthly Rent", ""),
+        "B4": flat_data.get("Move-in Date", ""),
+        "B5": flat_data.get("Application Fee", ""),
+        "B6": f"{gross_ratio}/{net_ratio}",
+        "B7": flat_data.get("No of Occupants", ""),
+        "B8": flat_data.get("Rent", ""),
+        "B9": flat_data.get("Applicant's Current Employer", ""),
+        "B12": vehicle,
+        "B13": animals,
+    }
+
+    for cell, value in write_map.items():
+        ws[cell] = value
+
+    # ✅ Also write ratios to J3 and J4 (optional but consistent with other templates)
+    ws["J3"] = gross_ratio
+    ws["J4"] = net_ratio
+
+    wb.save(output_path)
 
