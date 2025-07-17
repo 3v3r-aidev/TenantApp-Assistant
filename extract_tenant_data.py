@@ -138,11 +138,38 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     except Exception as exc:
         return {"error": str(exc)}
 
+def extract_text_from_first_page(pdf_path: str | Path) -> str:
+    try:
+        with fitz.open(pdf_path) as doc:
+            return doc[0].get_text().strip()
+    except Exception:
+        return ""
+
+def detect_form_type(text: str, ocr_used: bool = False) -> str:
+    if ocr_used:
+        return "handwritten_form"
+    if "05-15-24" in text or "07-08-22" in text:
+        return "standard_form"
+    elif "2-1-18" in text or "Declawed?" in text:
+        return "handwritten_form"
+    return "unknown"
+
+def call_handwritten_prompt(images: List[Image.Image]) -> Dict[str, str]:
+    # For now, reuse the same prompt as standard
+    return call_gpt_vision_api(images)
 
 def process_pdf(pdf_path: str | Path) -> Tuple[Dict[str, str], Dict]:
     images = extract_images_from_pdf(pdf_path)
-    return call_gpt_vision_api(images), {}
+    text = extract_text_from_first_page(pdf_path)
 
+    form_type = detect_form_type(text)
+
+    if form_type == "standard_form":
+        return call_gpt_vision_api(images), {}
+    elif form_type == "handwritten_form":
+        return call_handwritten_prompt(images), {}
+    else:
+        return {"error": "Unsupported or unknown form type"}, {}
 
 def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
     raw = (form_data.get("GPT_Output") or "").strip()
@@ -163,7 +190,6 @@ def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
 
     return parsed
 
-
 def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
     """Filter out vehicle entries where all key fields are empty or whitespace."""
     cleaned = []
@@ -173,9 +199,6 @@ def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
         if any(str(v.get(k, "") or "").strip() for k in ["Type", "Year", "Make", "Model", "Monthly Payment"]):
             cleaned.append(v)
     return cleaned
-
-
-from typing import Dict  # ✅ Required for function signature
 
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
@@ -307,6 +330,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
+    
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
 
