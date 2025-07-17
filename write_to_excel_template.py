@@ -81,7 +81,7 @@ def write_flattened_to_template(
         ws = wb.active
 
         # ── Property Info ─────────────────────────────
-        property_address = data.get("Property Address", "")
+        property_address = str(data.get("Property Address", "") or "").strip()
 
         # Initialize left header if missing
         if ws.oddHeader.left is None:
@@ -242,7 +242,8 @@ def write_multiple_applicants_to_template(
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        property_address = first_row.get("Property Address", "")
+        # ── Property Info ─────────────────────────────
+        property_address = str(first_row.get("Property Address", "") or "").strip()
 
         # Initialize left header if missing
         if ws.oddHeader.left is None:
