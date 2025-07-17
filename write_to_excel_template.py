@@ -83,8 +83,10 @@ def write_flattened_to_template(
         ws = wb.active
 
         # ── Property Info ─────────────────────────────────────────────
-        property_address = data.get("Property Address", "")
-        ws.oddHeader.left.text = property_address
+        prop_address = first_row.get("Property Address", "")
+        prop_str = str(prop_address) if prop_address is not None else ""
+        ws.oddHeader.left.text = prop_str
+
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
