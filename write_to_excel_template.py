@@ -6,6 +6,9 @@ from datetime import datetime
 from pathlib import Path
 from io import BytesIO
 from datetime import datetime, date
+import pandas as pd
+from openpyxl.styles import Alignment
+
 
 
 def calc_age(dob_str: str) -> str | int:
