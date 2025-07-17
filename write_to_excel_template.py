@@ -478,7 +478,7 @@ def write_multiple_applicants_to_template(
         wb.save(output)
         output.seek(0)
 
-        cleaned = re.sub(r"[^\w\s]", "", property_address)
+        cleaned = re.sub(r"[^\w\s]", "", str(property_address))
         words = cleaned.strip().split()
         word_part = (
             "_".join(words[1:3]) if len(words) >= 3
