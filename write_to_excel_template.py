@@ -82,11 +82,30 @@ def write_flattened_to_template(
 
         # ── Property Info ─────────────────────────────
         property_address = data.get("Property Address", "")
+
+        # Initialize left header if missing
+        if ws.oddHeader.left is None:
+            ws.oddHeader.left = openpyxl.worksheet.header_footer.HeaderFooterItem()
         ws.oddHeader.left.text = property_address
+
+        # Initialize center header if summary_header is used
+        if summary_header:
+            if ws.oddHeader.center is None:
+                ws.oddHeader.center = openpyxl.worksheet.header_footer.HeaderFooterItem()
+            existing = ws.oddHeader.center.text or ""
+            lines = existing.split("\n")
+            new_line = f"Date={summary_header}"
+            if len(lines) >= 3:
+                lines[2] = new_line
+            else:
+                lines += [""] * (2 - len(lines)) + [new_line]
+            ws.oddHeader.center.text = "\n".join(lines)
+
         ws["E3"] = property_address
         ws["E4"] = data.get("Move-in Date", "")
         ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
+        
         if summary_header:
             existing = ws.oddHeader.center.text or ""
             lines = existing.split("\n")
@@ -209,8 +228,7 @@ def write_flattened_to_template(
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
-
-
+  
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -219,21 +237,22 @@ def write_multiple_applicants_to_template(
     template_path="templates/Tenant_Template_Multiple.xlsx",
     summary_header=None,
 ):
-    """
-    Writes up to 10 applicants into Tenant_Template_Multiple.xlsx.
-    """
     try:
-        # ✅ Normalize first row
         first_row = normalize_all_dates(df.iloc[0].to_dict())
-
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
         property_address = first_row.get("Property Address", "")
+
+        # Initialize left header if missing
+        if ws.oddHeader.left is None:
+            ws.oddHeader.left = openpyxl.worksheet.header_footer.HeaderFooterItem()
         ws.oddHeader.left.text = property_address
 
+        # Initialize center header if summary_header is used
         if summary_header:
-            # ✅ Ensure Date=summary_header is written to the 3rd line of the center header
+            if ws.oddHeader.center is None:
+                ws.oddHeader.center = openpyxl.worksheet.header_footer.HeaderFooterItem()
             existing = ws.oddHeader.center.text or ""
             lines = existing.split("\n")
             new_line = f"Date={summary_header}"
@@ -242,20 +261,6 @@ def write_multiple_applicants_to_template(
             else:
                 lines += [""] * (2 - len(lines)) + [new_line]
             ws.oddHeader.center.text = "\n".join(lines)
-
-        # ✅ Lookup PropertyInfo.xlsx for G3 and G7 (match on first 3 words)
-        try:
-            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
-            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
-            mask = prop_df[2].fillna("").str.lower().apply(
-                lambda x: " ".join(x.split()[:3])
-            ) == addr_prefix
-            match = prop_df[mask]
-            if not match.empty:
-                ws["G3"] = match.iloc[0, 1]  # Column B → G3
-                ws["G7"] = match.iloc[0, 3]  # Column D → G7
-        except Exception as e:
-            print(f"Warning: Failed to match property in PropertyInfo.xlsx – {e}")
 
         ws["E3"] = property_address
         ws["E4"] = first_row.get("Move-in Date", "")
@@ -348,13 +353,13 @@ def write_multiple_applicants_to_template(
         cleaned = re.sub(r"[^\w\s]", "", str(property_address))
         words = cleaned.strip().split()
         word_part = (
-            "_".join(words[1:3]) if len(words) >= 3
-            else "_".join(words[:2]) if len(words) >= 2
-            else "tenant"
+            "_".join(words[1:3]) if len(words) >= 3 else
+            "_".join(words[:2]) if len(words) >= 2 else
+            "tenant"
         )
         filename = f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx".lower()
 
-        return output, filename
+        return output, filename(property_address)
 
     except Exception:
         print("❌ Error in write_multiple_applicants_to_template:")
