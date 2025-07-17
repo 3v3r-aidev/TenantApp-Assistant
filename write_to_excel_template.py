@@ -207,6 +207,7 @@ def write_flattened_to_template(
         traceback.print_exc()
         return None, None
 
+
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
