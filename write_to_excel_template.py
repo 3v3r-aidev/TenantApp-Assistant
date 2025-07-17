@@ -9,8 +9,6 @@ from io import BytesIO
 from datetime import datetime, date
 import pandas as pd 
 
-
-
 def calc_age(dob_str: str) -> str | int:
     if not dob_str:
         return ""
@@ -213,8 +211,14 @@ def write_multiple_applicants_to_template(
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
 
-        property_address = first_row.get("Property Address", "")
-        ws.oddHeader.left.text = property_address
+        # ── Property Info ─────────────────────────────────────────────
+        property_address = data.get("Property Address", "")
+        prop_str = str(property_address) if property_address is not None else ""
+        ws.oddHeader.left.text = prop_str
+        
+        ws["E3"] = property_address
+        ws["E4"] = data.get("Move-in Date", "")
+        ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
 
         # ✅ Set center header with 3 lines
         if summary_header:
