@@ -180,12 +180,18 @@ def write_flattened_to_template(
         output.seek(0)
 
         def generate_filename(address):
-            cleaned = re.sub(r"[^\w\s]", "", str(address))
+           # ensure property_address is string
+            addr_str = str(property_address) if property_address is not None else ""
+            cleaned = re.sub(r"[^\w\s]", "", addr_str)
             words = cleaned.strip().split()
-            word_part = "_".join(words[1:3]) if len(words) >= 3 else "_".join(words[:2]) if len(words) >= 2 else "tenant"
-            return f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
+            word_part = (
+                "_".join(words[1:3]) if len(words) >= 3
+                else "_".join(words[:2]) if len(words) >= 2
+                else "tenant"
+           )
+           filename = f"{word_part}_{datetime.now().strftime('%Y%m%d')}_app.xlsx".lower()
 
-        return output, generate_filename(property_address)
+           return output, generate_filename(property_address)
 
     except Exception:
         print("❌ Error in write_flattened_to_template:")
