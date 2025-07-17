@@ -217,8 +217,8 @@ def write_multiple_applicants_to_template(
         ws.oddHeader.left.text = prop_str
         
         ws["E3"] = property_address
-        ws["E4"] = data.get("Move-in Date", "")
-        ws["E5"] = str(data.get("Monthly Rent", "")).replace("$", "").strip()
+        ws["E4"] = first_row.get("Move-in Date", "")
+        ws["E5"] = str(first_row.get("Monthly Rent", "")).replace("$", "").strip()
 
         # ✅ Set center header with 3 lines
         if summary_header:
