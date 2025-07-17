@@ -223,11 +223,11 @@ if uploaded_pdfs:
             temp_path = os.path.join("temp", filename)
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.read())
-
+           
             # === Form recognition + extraction routing ===
-            images = convert_pdf_to_images(temp_path)
+            images = extract_images_from_pdf(temp_path)
             text = extract_text_from_first_page(temp_path)
-            ocr_used = len(text.strip()) < 50  # flag scanned/handwritten
+            ocr_used = len(text.strip()) < 50
             form_type = detect_form_type(text, ocr_used=ocr_used)
 
             if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
