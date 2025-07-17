@@ -130,7 +130,6 @@ if os.path.exists(EXTRACTED_DATA_PATH):
         key="applicant_selector"
     )
 
-# Save to Tenant Template
 # --- Save to Tenant Template ---
 if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
     selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
@@ -143,7 +142,12 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
         else:
             try:
                 # ✅ Write to Tenant Template (final)
-                output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
+                if template_type == "1–2 Applicants":
+                    flat_data = selected_df.iloc[0].to_dict()
+                    output_bytes, download_filename = write_flattened_to_template(flat_data, template_to_use)
+                else:
+                    output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
+
                 st.session_state["final_output_bytes"] = output_bytes
                 st.session_state["final_filename"] = download_filename
 
@@ -175,6 +179,7 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
 
             except Exception as e:
                 st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
+
 
 # ✅ Final Tenant Template Download Button
 if (
