@@ -139,10 +139,9 @@ Current Employer
 
 This software was developed by Rhanny Urbis for BEST | Evercrest Homes.
 All rights to the source code, design, and functionality are exclusively held by the developer and BEST | Evercrest Homes.
-
+```
 🔒 No public redistribution or reuse is allowed without prior written consent.
 🛠️ This app is intended solely for internal use by BEST | Evercrest Homes and its authorized users.
 📧 For licensing or usage inquiries, contact the developer or BEST administration.
-
-_Developed by Rhanny Urbis / BEST | Evercrest Homes
-_****
+```
+_**Developed by Rhanny Urbis / BEST | Evercrest Homes**_
