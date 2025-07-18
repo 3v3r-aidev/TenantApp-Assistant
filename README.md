@@ -1,145 +1,129 @@
-# 🏠 TenantApp Assistant
+## 🏠 Tenant Application Assistant
+A secure, end-to-end PDF parser and Excel generator for tenant applications. Built with Streamlit, this tool extracts structured data from scanned PDF applications, validates fields, and generates formatted Excel outputs for 1–2 or 3+ applicants. It also includes automatic email alerts for missing required fields.
 
-**TenantApp Assistant** is a secure, end-to-end automation solution built with **Streamlit** to streamline the processing of rental application PDFs. It leverages **OpenAI GPT-4o Vision** to extract structured applicant data, validate key fields (e.g., SSN, employer, income), auto-fill standardized Excel templates, and notify applicants via email when required information is missing.
-
-It is designed for **property managers, tenant screeners, and real estate operations teams** that want to automate applicant processing, improve data accuracy, and eliminate repetitive manual validation.
-
----
-
-## 🚀 Key Features & Functionalities
-
-### 🔐 Secure Access Control
-
-* Enforces authentication using username/password stored in streamlit secrets.
-* Blocks unauthorized access to applicant data.
-
-### 🧐 GPT-4o Vision Data Extraction
-
-* Uses OpenAI’s Vision API to extract structured text and form data from scanned PDFs and image-based pages.
-* Handles hybrid files containing both text-based and scanned content.
-* Dynamically flattens nested sections like: Co-applicants, Vehicle Info, Occupants.
-
-### 📅 Flattened Excel Holder with Field Cleaning
-
-* Extracted data is cleaned and flattened into a structured format.
-* Appends to a persistent file `Template_Data_Holder.xlsx` for staging, batch preview, and Excel output.
-* All dates normalized to mm/dd/yyyy. All currency fields cleaned of `$`.
-
-### 📈 Auto-Generate Excel Templates (Single/Multiple)
-
-* Supports both `Tenant_Template.xlsx` and `Tenant_Template_Multiple.xlsx`.
-* Multiple applicants are written to offset columns; vehicle entries are wrapped per row.
-* Monthly vehicle payments are summed across vehicles.
-
-### 📊 Field Validation + Email Trigger
-
-* Auto-flags missing or malformed fields like:
-
-  * Date of Birth
-  * SSN
-  * Phone
-    
-* Sends follow-up emails for incomplete fields via your configured SMTP.
-
-### 📧 Optional Automated Email Notifications
-
-* Missing fields trigger email option to request applicants for missing required info
-* Emails are formatted from template and dispatched securely.
-
-### 🚮 Auto Data Cleanup
-
-* Cleans previous records in the template holder before writing a new batch.
-* Ensures stale values never appear in final Excel outputs.
-
----
-
-## 🧰 Tech Stack
-
-| Component         | Description                         |
-| ----------------- | ----------------------------------- |
-| **Streamlit**     | Frontend & control flow UI          |
-| **Python 3.13**   | Core backend logic                  |
-| **OpenAI GPT-4o** | Vision-based OCR + NLP processing   |
-| **PyMuPDF**       | PDF parsing and image rendering     |
-| **Pillow**        | Image preprocessing                 |
-| **Pandas**        | Data wrangling and Excel handling   |
-| **smtplib/email** | Sending transactional email notices |
-
----
-
-## 🛠️ Setup Instructions
-
-### 🔐 1. Configure Secrets
-
-Create a `.streamlit/secrets.toml` file with:
-
+### 🚀 Features
 ```
+🔐 Secure Login System
+📤 Batch PDF Upload & Extraction
+📄 Form Type Detection (Standard/Handwritten)
+🧠 GPT-Vision-based Form Parsing
+📊 Flattened Excel Output (Tenant Template + Summary)
+📧 Missing Field Validation & Email Notification
+🖼️ OCR-based Image Extraction for Handwritten Forms
+📁 Persistent Storage of Parsed Records
+🧩 Modular Architecture for Extraction, Writing, and Email
+```
+
+### 🧰 Technologies Used
+```
+Streamlit – Web interface
+Pandas – Data processing
+OpenAI GPT Vision – Form parsing
+Tesseract OCR – OCR fallback
+OpenPyXL – Excel writing
+smtplib, email.message – Email alerts
+secrets.toml – Secure credentials handling
+```
+### 📂 Project Structure
+```
+├── main_app.py                      # Main Streamlit application
+├── extract_tenant_data.py          # GPT parsing, image extraction, flattening logic
+├── extract_utils.py                # Form detection and OCR helpers
+├── write_to_excel_template.py      # Tenant and Summary Excel writers
+├── write_template_holder.py        # Appends parsed records to Template_Data_Holder
+├── email_ui.py                     # UI and backend email alert module
+├── templates/
+│   ├── Tenant_Template.xlsx        # Excel template for 1–2 applicants
+│   ├── Tenant_Template_Multiple.xlsx  # Excel template for 3+ applicants
+│   └── App_Summary_Template.xlsx   # Summary output
+├── assets/
+│   └── medical-history.png         # App logo
+├── temp/                           # Temporary PDF/image storage
+└── secrets.toml                    # Holds credentials (excluded in .gitignore)
+🔒 Login Credentials Setup
+Create a secrets.toml file in the .streamlit folder:
+```
+```
+[openai]
+OPENAI_API_KEY = "your_api_key"
+
+[app]
 APP_USERNAME = "your_username"
 APP_PASSWORD = "your_password"
+
+[email]
 EMAIL_USER = "your_email@example.com"
-EMAIL_PASS = "your_email_password"
-OPENAI_API_KEY = "sk-..."
+EMAIL_PASS = "your_email_app_password"
 ```
-
-Note: Never commit this file to source control. Use Streamlit Cloud's built-in secrets manager for deployment.
-
-### 📦 2. Install Requirements
-
-Install dependencies using:
-
+### ▶️ How to Run
+**1. Clone the Repository**
+```
+git clone https://github.com/your-org/tenant-application-assistant.git
+cd tenant-application-assistant
+```
+**2. Install Dependencies**
 ```
 pip install -r requirements.txt
 ```
+Ensure Tesseract OCR is installed and available in your system PATH.
 
-Your `requirements.txt` should include:
-
-* streamlit
-* openai
-* pymupdf
-* Pillow
-* pandas
-
-### ▶️ 3. Run the Application
-
-Launch the app with:
-
+**3. Start the App**
 ```
-streamlit run app.py
+streamlit run main_app.py
 ```
-
-Visit [http://localhost:8501](http://localhost:8501) to interact with the UI.
-
----
-
 ## 📸 Screenshots
 
 <p>
   <img src="https://github.com/3v3r-aidev/TenantApp-Assistant/blob/main/screenshots/full_ui.png" alt="Full UI" width="500" height="500"> 
 </p>
 
----
+### 📌 Usage Workflow
+```
+Login with credentials from secrets.toml
+Upload one or more PDF tenant applications
+Click "Extract Data" to parse and convert
+Click "Save Extracted Data" to store to Excel holder
+Select applicants → "Save to Tenant Template"
+Download finalized Excel files or summary
+```
+If required fields are missing, customizable email message requesting missing information can be sent
 
-## ✅ Usage Flow
+## 🧪 Form Support
+Supported form types:
+```
+Form_A_2022, Form_B_2024 (standard typed forms)
+handwritten_form (OCR + GPT extraction)
+Auto-detection based on 1st-page text content
+```
 
-1. Login with configured credentials.
-2. Upload multiple PDF applications for a single property
-3. Save to `Template_Data_Holder.xlsx` for preview.
-4. Review validation results for missing/invalid data.
-5. Has email option to request applicants to submit required missing info
-6. Generate final Excel files for downstream review or import.
+### 🛠️ Extending the App
+Modular functions are defined for:
 
----
+```
+Form detection (extract_utils.py)
+GPT Vision parsing (extract_tenant_data.py)
+Excel generation (write_to_excel_template.py)
+Email logic (email_ui.py)
+```
+**To add a new form type:**
+```
+Add detection logic to detect_form_type()
+Create a new extraction route
+Update conditional routing in main_app.py
+```
 
-## 📌 Notes
+### 📧 Email Alerts
+Applicants missing:
+```
+Full Name
+SSN
+Phone Number
+DOB
+Current Employer
+```
+...will automatically trigger an editable email via UI with built-in send capability.
 
-* `Template_Data_Holder.xlsx` is the live working file across batches.
-* Vehicle entries are parsed line-by-line, summed, and formatted as multi-line.
-* Dates are normalized (`MM/DD/YYYY`) and `$` symbols are stripped.
-* Co-applicants are counted toward total occupants but not treated as dependents.
-
----
-
-## 🌟 Benefits
+### 🌟 Benefits
 
 * ✅ Reduces manual errors and copy-paste.
 * ✅ Ensures field completeness and consistency.
@@ -147,18 +131,22 @@ Visit [http://localhost:8501](http://localhost:8501) to interact with the UI.
 * ✅ Streamlines form-to-Excel transformation.
 * ✅ Enables automated communication with applicants.
 
----
+### 📃 License
 
-## 👨‍💼 Developer Notes
+**Proprietary Software**__
 
-* Uses `st.session_state` to persist extraction state.
-* Excel write logic supports variable vehicle count and multi-applicant forms.
-* GPT schema is enforced to avoid hallucinated fields.
-* Date and currency fields are always normalized before writing.
+This software was developed by Rhanny Urbis for BEST | Evercrest Homes.
+All rights to the source code, design, and functionality are exclusively held by the developer and BEST | Evercrest Homes.
+
+🔒 No public redistribution or reuse is allowed without prior written consent.
+🛠️ This app is intended solely for internal use by BEST | Evercrest Homes and its authorized users.
+📧 For licensing or usage inquiries, contact the developer or BEST administration.
+
+
 
 ---
 
 ## 📃 License
 
-MIT License © 2025
 Developed by Rhanny Urbis / BEST | Evercrest Homes
+App rights exclusive to Developer and BEST | Evercrest Homes
