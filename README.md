@@ -144,11 +144,5 @@ All rights to the source code, design, and functionality are exclusively held by
 🛠️ This app is intended solely for internal use by BEST | Evercrest Homes and its authorized users.
 📧 For licensing or usage inquiries, contact the developer or BEST administration.
 
-
-
----
-
-## 📃 License
-
-Developed by Rhanny Urbis / BEST | Evercrest Homes
-App rights exclusive to Developer and BEST | Evercrest Homes
+_Developed by Rhanny Urbis / BEST | Evercrest Homes
+_****
