@@ -40,9 +40,11 @@ secrets.toml – Secure credentials handling
 │   └── medical-history.png         # App logo
 ├── temp/                           # Temporary PDF/image storage
 └── secrets.toml                    # Holds credentials (excluded in .gitignore)
-🔒 Login Credentials Setup
-Create a secrets.toml file in the .streamlit folder:
 ```
+### 🔒 Login Credentials Setup
+
+**Create a secrets.toml file in the .streamlit folder:**
+
 ```
 [openai]
 OPENAI_API_KEY = "your_api_key"
