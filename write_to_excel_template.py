@@ -237,7 +237,19 @@ def write_multiple_applicants_to_template(
         ws["J9"] = first_row.get("Rep Phone", "")
         ws["J10"] = first_row.get("Rep Email", "")
 
-        # ── Gross Ratio Calculation (only) ──────────────────────────────
+        # ── PropertyInfo.xlsx Lookup ─────────────────────────────
+        try:
+            prop_df = pd.read_excel("PropertyInfo.xlsx", header=None, dtype=str)
+            addr_prefix = " ".join(property_address.strip().lower().split()[:3])
+            mask = prop_df[2].fillna("").str.lower().apply(lambda x: " ".join(x.split()[:3])) == addr_prefix
+            match = prop_df[mask]
+            if not match.empty:
+                ws["G3"] = match.iloc[0, 1]
+                ws["G7"] = match.iloc[0, 3]
+        except Exception as e:
+            print(f"Warning: Failed PropertyInfo lookup – {e}")
+
+        # ── Gross & Net Ratio Calculation ──────────────────────────────
         rent_val = first_row.get("Monthly Rent", "")
         gross_val = first_row.get("Gross Monthly Income", "")
 
@@ -261,8 +273,29 @@ def write_multiple_applicants_to_template(
             print(f"⚠️ Gross ratio calculation failed: {e}")
             gross_ratio = ""
 
+        # Co-applicant Total Income for net ratio
+        co_total = 0
+        try:
+            for _, row_series in df.iterrows():
+                row = row_series.to_dict()
+                val = str(row.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+                try:
+                    if val and float(val) != gross:  # avoid double-counting main applicant
+                        co_total += float(val)
+                except:
+                    continue
+        except Exception as e:
+            print(f"⚠️ Failed to calculate co-applicant income: {e}")
+
+        try:
+            net_total = gross + co_total
+            net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+        except Exception as e:
+            print(f"⚠️ Net ratio calculation failed: {e}")
+            net_ratio = ""
+
         ws["J3"] = gross_ratio
-        ws["J4"] = ""
+        ws["J4"] = net_ratio
 
         # ── Fill applicant columns ──────────────────────────────────────
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
@@ -364,11 +397,9 @@ def write_multiple_applicants_to_template(
         traceback.print_exc()
         return None, None
 
-
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
 # ───────────────────────────────────────────────────────────────────────────────
-
 def write_to_summary_template(
     flat_data,
     output_path,
