@@ -202,7 +202,7 @@ def parse_gpt_output(form_data: Dict[str, str | None]) -> Dict:
         parsed["G. Animals"] = parsed["Animals"]
 
     return parsed
-
+    
 def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
     """Filter out vehicle entries where all key fields are empty or whitespace."""
     cleaned = []
