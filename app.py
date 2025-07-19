@@ -338,8 +338,15 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             else:
                 updated_full_name, updated_email = full_name, email
 
+    # 🔽 Move success/failure handling into post-loop and add stop points
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
         st.session_state["trigger_validation"] = False
+        st.session_state["email_validation_done"] = True
+        st.stop()
     else:
-        st.info("\n".join(all_missing_summary))
+        with st.expander("📧 Missing Fields Summary", expanded=False):
+            st.info("\n".join(all_missing_summary) or "Applicants with missing info displayed above.")
+        st.session_state["email_validation_done"] = True
+        st.stop()
+
