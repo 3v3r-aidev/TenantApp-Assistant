@@ -368,10 +368,6 @@ def write_multiple_applicants_to_template(
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
 # ───────────────────────────────────────────────────────────────────────────────
-from openpyxl import load_workbook
-from datetime import datetime
-from extract_tenant_data import normalize_all_dates
-import traceback
 
 def write_to_summary_template(
     flat_data,
@@ -522,9 +518,7 @@ def write_to_summary_template(
 
             for cell, value in write_map.items():
                 ws[cell] = value
-
-            ws["J3"] = gross_ratio
-            ws["J4"] = net_ratio
+            
         except Exception as e:
             print(f"❌ Error writing fields to worksheet: {e}")
             traceback.print_exc()
