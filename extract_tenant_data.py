@@ -232,27 +232,24 @@ def normalize_date_string(date_str):
         except Exception:
             return date_str
 
+def normalize_date_string(date_str):
+    if not isinstance(date_str, str):
+        return date_str
 
-def normalize_all_dates(data):
-    def is_date_field(k): 
-        return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
+    clean = re.sub(r"[-.]", "/", date_str.strip())
 
-    def normalize(obj):
-        if isinstance(obj, dict):
-            new_obj = {}
-            for k, v in obj.items():
-                if isinstance(v, (dict, list)):
-                    new_obj[k] = normalize(v)
-                elif isinstance(v, str) and is_date_field(k):
-                    new_obj[k] = normalize_date_string(v)
-                else:
-                    new_obj[k] = v
-            return new_obj
-        elif isinstance(obj, list):
-            return [normalize(item) for item in obj]
-        return obj
+    known_formats = [
+        "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%Y/%d/%m",
+        "%m/%d/%y", "%d/%m/%y", "%y/%m/%d"
+    ]
 
-    return normalize(data)
+    for fmt in known_formats:
+        try:
+            return datetime.strptime(clean, fmt).strftime("%m/%d/%Y")
+        except ValueError:
+            continue
+
+    return date_str  # return as-is if no format matched
 
 
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
