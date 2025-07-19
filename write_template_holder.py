@@ -21,13 +21,11 @@ def write_to_template_holder(data_dict, holder_path="templates/Template_Data_Hol
 
     df_new = pd.DataFrame([data_dict])
     df_new = df_new.reindex(columns=expected_columns, fill_value=None)
-    df_new = df_new.fillna("").applymap(lambda x: str(x).strip() if isinstance(x, str) else x) # Clean all cells: fill missing values, strip whitespace from strings
+    df_new = df_new.fillna("").applymap(lambda x: str(x).strip() if isinstance(x, str) else x)  # Clean all cells
 
-    df_new.to_excel(holder_path, index=False, engine='openpyxl')
-    print(f"Replaced contents of {holder_path}")
-
-def generate_output_filename(property_address, prefix="Tenant"):
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    words = property_address.split()
-    suffix = f"{words[1]}_{words[2]}" if len(words) >= 3 else words[1] if len(words) >= 2 else "Unknown"
-    return f"{prefix}_{date_str}_{suffix}.xlsx"
+    try:
+        df_new.to_excel(holder_path, index=False, engine='openpyxl')
+        print(f"✅ Replaced contents of {holder_path}")
+    except Exception as e:
+        print(f"❌ Failed to write to template holder: {e}")
+        raise
