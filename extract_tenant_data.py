@@ -45,97 +45,104 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
             print(f"⚠️ Error encoding image: {img_err}")
 
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "Extract structured tenant application data and return a JSON object using the exact schema below. "
-                "All fields must be included, even if null. Do NOT add explanations.\n\n"
-                "**Required focus:** Extract accurately the following sections:\n"
-                "- C. Representation and Marketing\n"
-                "- Employment and Other Income\n"
-                "- E. Occupant Information\n"
-                "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
-                "- G. Animals (list if \"Will any animals be kept on the Property?\" is \"Yes\")\n"
-                "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
-                "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
-                "Return only this JSON format:\n"
-                "{\n"
-                '  "Property Address": string | null,\n'
-                '  "Move-in Date": string | null,\n'
-                '  "Monthly Rent": string | null,\n'
-                '  "FullName": string | null,\n'
-                '  "PhoneNumber": string | null,\n'
-                '  "Email": string | null,\n'
-                '  "DOB": string | null,\n'
-                '  "SSN": string | null,\n'
-                '  "Co-applicants": [\n'
-                '    {"Name": string | null, "Relationship": string | null}\n'
-                '  ],\n'
-                '  "Applicant\'s Current Address": {\n'
-                '    "Address": string | null,\n'
-                '    "Phone:Day": string | null,\n'
-                '    "Landlord or Property Manager\'s Name": string | null,\n'
-                '    "Rent": string | null\n'
-                '  },\n'
-                '  "IDType": string | null,\n'
-                '  "DriverLicenseNumber": string | null,\n'
-                '  "IDIssuer": string | null,\n'
-                '  "Nationality": string | null,\n'
-                '  "FormSource": string | null,\n'
-                '  "ApplicationDate": string | null,\n'
-                '  "C.Representation and Marketing": {\n'
-                '    "Name": string | null,\n'
-                '    "Company": string | null,\n'
-                '    "E-mail": string | null,\n'
-                '    "Phone Number": string | null\n'
-                '  },\n'
-                '  "Employment and Other Income:": {\n'
-                '    "Applicant\'s Current Employer": string | null,\n'
-                '    "Current Employer Details": {\n'
-                '      "Employment Verification Contact": string | null,\n'
-                '      "Address": string | null,\n'
-                '      "Phone": string | null,\n'
-                '      "E-mail": string | null,\n'
-                '      "Position": string | null,\n'
-                '      "Start Date": string | null,\n'
-                '      "Gross Monthly Income": string | null\n'
-                '    },\n'
-                '    "Child Support": string | null\n'
-                '  },\n'
-                '  "E. Occupant Information": [\n'
-                '    {\n'
-                '      "Name": string | null,\n'
-                '      "Relationship": string | null,\n'
-                '      "DOB": string | null\n'
-                '    }\n'
-                '  ],\n'
-                '  "F. Vehicle Information:": [\n'
-                '    {\n'
-                '      "Type": string | null,\n'
-                '      "Year": string | null,\n'
-                '      "Make": string | null,\n'
-                '      "Model": string | null,\n'
-                '      "Monthly Payment": string | null\n'
-                '    }\n'
-                '  ],\n'
-                '  "G. Animals": [\n'
-                '    {\n'
-                '      "Type and Breed": string | null,\n'
-                '      "Name": string | null,\n'
-                '      "Color": string | null,\n'
-                '      "Weight": string | null,\n'
-                '      "Age in Yrs": string | null,\n'
-                '      "Gender": string | null\n'
-                '    }\n'
-                '  ]\n'
-                '}\n\n'
-                "Instruction for G. Animals:If the field 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?' has a checkbox values of Yes: "
-                "'Go to the field, 'If yes, list all animals to be kept on the Property': Extract Type and Breed, Name, Color, Weight, Age in Yrs, and Gender."
-                "Return as a structured list of dictionaries."
-            )
-        },
-        {"role": "user", "content": image_parts}
-    ]
+    {
+        "role": "system",
+        "content": (
+            "Extract structured tenant application data and return a JSON object using the exact schema below. "
+            "All fields must be included, even if null. Do NOT add explanations.\n\n"
+            "**Required focus:** Extract accurately the following sections:\n"
+            "- C. Representation and Marketing\n"
+            "- Employment and Other Income\n"
+            "- E. Occupant Information\n"
+            "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
+            "- G. Animals (list if \"Will any animals be kept on the Property?\" is \"Yes\")\n"
+            "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
+            "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
+            "Return only this JSON format:\n"
+            "{\n"
+            '  "Property Address": string | null,\n'
+            '  "Move-in Date": string | null,\n'
+            '  "Monthly Rent": string | null,\n'
+            '  "FullName": string | null,\n'
+            '  "PhoneNumber": string | null,\n'
+            '  "Email": string | null,\n'
+            '  "DOB": string | null,\n'
+            '  "SSN": string | null,\n'
+            '  "Co-applicants": [\n'
+            '    {"Name": string | null, "Relationship": string | null}\n'
+            '  ],\n'
+            '  "Applicant\'s Current Address": {\n'
+            '    "Address": string | null,\n'
+            '    "Phone:Day": string | null,\n'
+            '    "Landlord or Property Manager\'s Name": string | null,\n'
+            '    "Rent": string | null\n'
+            '  },\n'
+            '  "IDType": string | null,\n'
+            '  "DriverLicenseNumber": string | null,\n'
+            '  "IDIssuer": string | null,\n'
+            '  "Nationality": string | null,\n'
+            '  "FormSource": string | null,\n'
+            '  "ApplicationDate": string | null,\n'
+            '  "C.Representation and Marketing": {\n'
+            '    "Name": string | null,\n'
+            '    "Company": string | null,\n'
+            '    "E-mail": string | null,\n'
+            '    "Phone Number": string | null\n'
+            '  },\n'
+            '  "Employment and Other Income:": {\n'
+            '    "Applicant\'s Current Employer": string | null,\n'
+            '    "Current Employer Details": {\n'
+            '      "Employment Verification Contact": string | null,\n'
+            '      "Address": string | null,\n'
+            '      "Phone": string | null,\n'
+            '      "E-mail": string | null,\n'
+            '      "Position": string | null,\n'
+            '      "Start Date": string | null,\n'
+            '      "Gross Monthly Income": string | null\n'
+            '    },\n'
+            '    "Child Support": string | null\n'
+            '  },\n'
+            '  "E. Occupant Information": [\n'
+            '    {\n'
+            '      "Name": string | null,\n'
+            '      "Relationship": string | null,\n'
+            '      "DOB": string | null\n'
+            '    }\n'
+            '  ],\n'
+            '  "F. Vehicle Information:": [\n'
+            '    {\n'
+            '      "Type": string | null,\n'
+            '      "Year": string | null,\n'
+            '      "Make": string | null,\n'
+            '      "Model": string | null,\n'
+            '      "Monthly Payment": string | null\n'
+            '    }\n'
+            '  ],\n'
+            '  "G. Animals": [\n'
+            '    {\n'
+            '      "Type and Breed": string | null,\n'
+            '      "Name": string | null,\n'
+            '      "Color": string | null,\n'
+            '      "Weight": string | null,\n'
+            '      "Age in Yrs": string | null,\n'
+            '      "Gender": string | null\n'
+            '    }\n'
+            '  ]\n'
+            '}\n\n'
+            "Instruction for G. Animals: First, locate the question: 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?'. "
+            "If the checkbox or answer is 'Yes', then go to the section that begins with: 'If yes, list all animals to be kept on the Property' and extract the following details for each animal:\n"
+            "- Type and Breed\n"
+            "- Name\n"
+            "- Color\n"
+            "- Weight\n"
+            "- Age in Yrs\n"
+            "- Gender\n\n"
+            "Return the results in the structured list format under the key 'G. Animals'. "
+            "If the checkbox or answer is 'No', return an empty list for 'G. Animals'."
+        )
+    },
+    {"role": "user", "content": image_parts}
+]
 
     try:
         response = openai.chat.completions.create(
