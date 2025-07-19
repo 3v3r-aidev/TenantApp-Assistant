@@ -163,12 +163,15 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                         flat_data = selected_df.iloc[0].to_dict()
                         output_bytes, download_filename = write_flattened_to_template(flat_data, template_to_use)
                     elif len(selected_df) == 2:
-                        output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_path=MULTIPLE_TEMPLATE_PATH)
+                        output_bytes, download_filename = write_multiple_applicants_to_template(
+                            selected_df,
+                            template_path=MULTIPLE_TEMPLATE_PATH
+                        )
                     else:
                         st.sidebar.warning("Selected more than 2 applicants — please switch to multi-applicant template.")
-                        return
+                        st.stop()
                 else:
-                    output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_to_use)
+                    output_bytes, download_filename = write_multiple_applicants_to_template(selected_df, template_path=template_to_use)
 
                 st.session_state["final_output_bytes"] = output_bytes
                 st.session_state["final_filename"] = download_filename
@@ -196,7 +199,6 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
 
             except Exception as e:
                 st.sidebar.error(f"❌ Failed to write to tenant template: {e}")
-
 
 if "final_output_bytes" in st.session_state and isinstance(st.session_state["final_output_bytes"], BytesIO) and "final_filename" in st.session_state:
     st.sidebar.download_button(
