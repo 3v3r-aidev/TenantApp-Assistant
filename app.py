@@ -17,6 +17,28 @@ import smtplib
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
 os.makedirs("temp", exist_ok=True)
 
+import streamlit as st
+
+# ── Optional: Other imports
+import pandas as pd
+from datetime import datetime
+
+# ── Insert CSS to hide toolbar elements
+custom_css = """
+    <style>
+    /* Hide Share, Star, Pencil, and 3-dot Menu */
+    .stActionButton {display: none;}
+    .viewerBadge_container__1QSob svg[title="Open in Streamlit"] {display: none;}
+    .viewerBadge_container__1QSob svg[title="Edit"] {display: none;}
+    .viewerBadge_container__1QSob svg[title="Save"] {display: none;}
+    .viewerBadge_container__1QSob + div {display: none;}  /* Hides the vertical 3-dots menu */
+
+    /* Keep the Stop/progress icon */
+    .viewerBadge_container__1QSob {visibility: visible;}
+    </style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
 def get_base64_image(path):
     try:
         with open(path, "rb") as f:
@@ -103,7 +125,7 @@ MULTIPLE_TEMPLATE_PATH = "templates/Tenant_Template_Multiple.xlsx"
 SUMMARY_TEMPLATE_PATH ="templates/App_Summary_Template.xlsx"
 
 st.sidebar.title("Navigation")
-st.title(" Tenant Application Assistant")
+st.title(" TenantApp Assistant")
 st.markdown("This tool extracts and validates tenant application data.")
 
 template_type = st.sidebar.selectbox("Select number of applicants:", ["1–2 Applicants", "3+ Applicants"], key="template_type_selector")
