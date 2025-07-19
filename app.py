@@ -255,26 +255,25 @@ if uploaded_pdfs:
 
         st.success("✅ All applications extracted.")
 
-   if st.button("Save Extracted Data"):
-    saved_records = []
-    for filename, data in st.session_state.batch_extracted.items():
-        try:
-            parsed = parse_gpt_output(data)
-            normalized = normalize_all_dates(parsed)
-            flat = flatten_extracted_data(normalized)
-            saved_records.append(flat)
-        except Exception as e:
-            st.warning(f"{filename}: Failed to parse – {e}")
+    if st.button("Save Extracted Data"):
+        saved_records = []
+        for filename, data in st.session_state.batch_extracted.items():
+            try:
+                parsed = parse_gpt_output(data)
+                normalized = normalize_all_dates(parsed)
+                flat = flatten_extracted_data(normalized)
+                saved_records.append(flat)
+            except Exception as e:
+                st.warning(f"{filename}: Failed to parse – {e}")
 
-    if saved_records:
-        try:
-            df = pd.DataFrame(saved_records)
-            df.to_excel(EXTRACTED_DATA_PATH, index=False)
-            st.success("✅ All extracted records saved.")
-            st.session_state.trigger_validation = True
-        except Exception as e:
-            st.error(f"❌ Failed to save extracted records: {e}")
-
+        if saved_records:
+            try:
+                df = pd.DataFrame(saved_records)
+                df.to_excel(EXTRACTED_DATA_PATH, index=False)
+                st.success("✅ All extracted records saved.")
+                st.session_state.trigger_validation = True
+            except Exception as e:
+                st.error(f"❌ Failed to save extracted records: {e}")
 
 def is_missing(value):
     try:
