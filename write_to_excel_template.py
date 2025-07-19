@@ -72,17 +72,6 @@ def normalize_date_string(date_str):
             continue
     return date_str
 
-def normalize_all_dates(data):
-    def is_date_field(k): return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
-    def normalize(obj):
-        if isinstance(obj, dict):
-            return {k: normalize_date_string(v) if is_date_field(k) else normalize(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [normalize(i) for i in obj]
-        return obj
-    return normalize(data)
-
-
 # ───────────────────────────────────────────────────────────────────────────────
 # 1. write_flattened_to_template  (adds strict input-type guard)
 # ───────────────────────────────────────────────────────────────────────────────
