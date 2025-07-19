@@ -8,6 +8,7 @@ from io import BytesIO
 from datetime import datetime, date
 import pandas as pd
 from openpyxl.styles import Alignment
+from extract_tenant_data import normalize_all_dates, normalize_date_string
 
 def calc_age(dob_str: str) -> str | int:
     if not dob_str:
