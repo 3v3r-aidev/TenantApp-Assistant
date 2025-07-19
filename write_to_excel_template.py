@@ -10,10 +10,25 @@ import pandas as pd
 from openpyxl.styles import Alignment
 
 
-
 def calc_age(dob_str: str) -> str | int:
     if not dob_str:
         return ""
+    
+    try:
+        dob_str = str(dob_str).strip()
+    except:
+        return "Invalid DOB"
+
+    # Check if it's an Excel serial date (pure digits, float-like)
+    if re.match(r"^\d+(\.0+)?$", dob_str):
+        try:
+            dob = datetime(1899, 12, 30) + pd.to_timedelta(float(dob_str), unit="D")
+            dob = dob.date()
+            today = date.today()
+            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        except:
+            return "Invalid DOB"
+
     for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
         try:
             dob = datetime.strptime(dob_str, fmt).date()
@@ -22,6 +37,7 @@ def calc_age(dob_str: str) -> str | int:
         except ValueError:
             continue
     return "Invalid DOB"
+
 
 def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
     try:
