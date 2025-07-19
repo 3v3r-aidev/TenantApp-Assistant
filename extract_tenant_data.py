@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import re
 from pathlib import Path
 from typing import List, Dict, Tuple
 import fitz  # PyMuPDF
