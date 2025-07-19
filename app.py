@@ -14,22 +14,20 @@ from email.message import EmailMessage
 from email_ui import render_email_ui
 import smtplib
 
-# --- Page Config MUST be first ---
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
-
-# Ensure temp directory exists
 os.makedirs("temp", exist_ok=True)
 
-# Function to encode to base64 the app logo
 def get_base64_image(path):
-    with open(path, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception as e:
+        print(f"⚠️ Failed to load logo image: {e}")
+        return ""
 
-# Encode local image
 img_base64 = get_base64_image("assets/medical-history.png")
 
-# Inject fixed-position app logo with caption below
 st.markdown(f"""
     <style>
         .evercrest-logo {{
@@ -71,19 +69,17 @@ def generate_filename_from_address(address: str) -> str:
     except Exception:
         return f"unknown_{datetime.now().strftime('%Y%m%d')}_app.xlsx"
 
-# --- Credentials ---
-USERNAME = st.secrets["app"] ["APP_USERNAME"]
-PASSWORD = st.secrets["app"] ["APP_PASSWORD"]
-EMAIL_USER = st.secrets["email"]["EMAIL_USER"]
-EMAIL_PASS = st.secrets["email"]["EMAIL_PASS"]
+USERNAME = st.secrets["app"].get("APP_USERNAME", "admin")
+PASSWORD = st.secrets["app"].get("APP_PASSWORD", "password")
+EMAIL_USER = st.secrets["email"].get("EMAIL_USER", "")
+EMAIL_PASS = st.secrets["email"].get("EMAIL_PASS", "")
 
-# --- Login Logic ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     with st.form("Login"):
-        st.subheader("\U0001F510 TenantApp Assistant Login")
+        st.subheader("🔐 TenantApp Assistant Login")
         username_input = st.text_input("Username")
         password_input = st.text_input("Password", type="password")
         login_button = st.form_submit_button("Login")
@@ -93,15 +89,14 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.rerun()
             else:
-                st.error("\u274C Invalid credentials")
+                st.error("❌ Invalid credentials")
     st.stop()
 else:
-    st.sidebar.success(f"\U0001F513 Logged in as {USERNAME}")
-    if st.sidebar.button("\U0001F6AA Logout"):
+    st.sidebar.success(f"🔓 Logged in as {USERNAME}")
+    if st.sidebar.button("🚪 Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
-# --- Main App Logic ---
 EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
 SINGLE_TEMPLATE_PATH = "templates/Tenant_Template.xlsx"
 MULTIPLE_TEMPLATE_PATH = "templates/Tenant_Template_Multiple.xlsx"
@@ -111,26 +106,26 @@ st.sidebar.title("Navigation")
 st.title(" Tenant Application Assistant")
 st.markdown("This tool extracts and validates tenant application data.")
 
-# Template selection
-template_type = st.sidebar.selectbox(
-    "Select number of applicants:",
-    ["1–2 Applicants", "3+ Applicants"],
-    key="template_type_selector"
-)
+template_type = st.sidebar.selectbox("Select number of applicants:", ["1–2 Applicants", "3+ Applicants"], key="template_type_selector")
 
-# Load existing holder
 df_holder = pd.DataFrame()
 if os.path.exists(EXTRACTED_DATA_PATH):
-    df_holder = pd.read_excel(EXTRACTED_DATA_PATH)
-    st.sidebar.markdown(f"\U0001F4C4 File loaded. Rows: **{len(df_holder)}**")
+    try:
+        df_holder = pd.read_excel(EXTRACTED_DATA_PATH)
+        st.sidebar.markdown(f"📄 File loaded. Rows: **{len(df_holder)}**")
+    except Exception as e:
+        st.sidebar.error(f"❌ Failed to load extracted data: {e}")
+
+try:
     selected_indices = st.sidebar.multiselect(
         "Select applicant(s) to write to tenant template:",
         options=df_holder.index,
-        format_func=lambda i: f"{df_holder.at[i, 'FullName']} - {df_holder.at[i, 'Property Address']}",
+        format_func=lambda i: f"{df_holder.at[i, 'FullName']} - {df_holder.at[i, 'Property Address']}" if 'FullName' in df_holder.columns and 'Property Address' in df_holder.columns else str(i),
         key="applicant_selector"
     )
+except Exception as e:
+    st.sidebar.warning(f"⚠️ Error displaying applicant selector: {e}")
 
-# --- Save to Tenant Template ---
 if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
     selected_df = df_holder.loc[selected_indices] if selected_indices else pd.DataFrame()
     if selected_df.empty:
@@ -141,7 +136,6 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
             st.sidebar.warning(f"{template_to_use} not found.")
         else:
             try:
-                # ✅ Write to Tenant Template (final)
                 if template_type == "1–2 Applicants":
                     flat_data = selected_df.iloc[0].to_dict()
                     output_bytes, download_filename = write_flattened_to_template(flat_data, template_to_use)
@@ -151,10 +145,8 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                 st.session_state["final_output_bytes"] = output_bytes
                 st.session_state["final_filename"] = download_filename
 
-                # ✅ Ensure directory exists for summary
                 os.makedirs(os.path.dirname(SUMMARY_TEMPLATE_PATH), exist_ok=True)
 
-                # ✅ Write Summary Template directly
                 first_applicant = selected_df.iloc[0].to_dict()
                 write_to_summary_template(
                     flat_data=first_applicant,
@@ -162,31 +154,22 @@ if st.sidebar.button("Save to Tenant Template", key="save_to_template"):
                     summary_template_path=SUMMARY_TEMPLATE_PATH
                 )
 
-                # ✅ Load summary as BytesIO for consistent handling
                 with open(SUMMARY_TEMPLATE_PATH, "rb") as f:
                     summary_bytes = BytesIO(f.read())
 
-                # ✅ Filename
                 address = str(first_applicant.get("Property Address", "tenant")).strip()
                 address_clean = "_".join(re.sub(r"[^\w\s]", "", address).split()[:3]) or "tenant"
                 date_str = datetime.now().strftime("%Y%m%d")
                 summary_filename = f"{address_clean}_{date_str}_summary.xlsx".lower()
 
-                # ✅ Store to session
                 st.session_state["summary_output_bytes"] = summary_bytes
                 st.session_state["summary_filename"] = summary_filename
                 st.session_state["trigger_validation"] = True
 
             except Exception as e:
-                st.sidebar.error(f"\u274C Failed to write to tenant template: {e}")
+                st.sidebar.error(f"❌ Failed to write to tenant template: {e}")
 
-
-# ✅ Final Tenant Template Download Button
-if (
-    "final_output_bytes" in st.session_state 
-    and isinstance(st.session_state["final_output_bytes"], BytesIO)
-    and "final_filename" in st.session_state
-):
+if "final_output_bytes" in st.session_state and isinstance(st.session_state["final_output_bytes"], BytesIO) and "final_filename" in st.session_state:
     st.sidebar.download_button(
         label="⬇️ Download Final Tenant Template",
         data=st.session_state["final_output_bytes"].getvalue(),
@@ -194,12 +177,7 @@ if (
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-# ✅ Summary Template Download Button
-if (
-    "summary_output_bytes" in st.session_state 
-    and isinstance(st.session_state["summary_output_bytes"], BytesIO)
-    and "summary_filename" in st.session_state
-):
+if "summary_output_bytes" in st.session_state and isinstance(st.session_state["summary_output_bytes"], BytesIO) and "summary_filename" in st.session_state:
     st.sidebar.download_button(
         label="⬇️ Download Summary Template",
         data=st.session_state["summary_output_bytes"].getvalue(),
@@ -207,15 +185,8 @@ if (
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-# === Upload PDF Files ===
-uploaded_pdfs = st.file_uploader(
-    "Upload Tenant Application PDFs",
-    type=["pdf"],
-    accept_multiple_files=True,
-    key="tenant_pdf_uploader"
-)
+uploaded_pdfs = st.file_uploader("Upload Tenant Application PDFs", type=["pdf"], accept_multiple_files=True, key="tenant_pdf_uploader")
 
-# --- Extraction and Save All Logic ---
 if "batch_extracted" not in st.session_state:
     st.session_state.batch_extracted = {}
 if "saved_applicants" not in st.session_state:
@@ -226,28 +197,39 @@ if uploaded_pdfs:
         for uploaded_file in uploaded_pdfs:
             filename = uploaded_file.name
             temp_path = os.path.join("temp", filename)
-            with open(temp_path, "wb") as f:
-                f.write(uploaded_file.read())
-           
-            # === Form recognition + extraction routing ===
-            images = extract_images_from_pdf(temp_path)
-            text = extract_text_from_first_page(temp_path)
-            ocr_used = len(text.strip()) < 50
-            form_type = detect_form_type(text, ocr_used=ocr_used)
-
-            if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
-                extracted_data = extract_standard_form(images)
-            elif form_type == "handwritten_form":
-                extracted_data = extract_handwritten_form(images)
-            else:
-                st.warning(f"{filename}: Unknown or unsupported form type.")
+            try:
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.read())
+            except Exception as e:
+                st.warning(f"{filename}: Failed to save uploaded file – {e}")
                 continue
 
-            if "error" in extracted_data:
-                st.warning(f"{filename}: {extracted_data['error']}")
+            try:
+                images = extract_images_from_pdf(temp_path)
+                text = extract_text_from_first_page(temp_path)
+                ocr_used = len(text.strip()) < 50
+                form_type = detect_form_type(text, ocr_used=ocr_used)
+            except Exception as e:
+                st.warning(f"{filename}: Error during form recognition – {e}")
                 continue
 
-            st.session_state.batch_extracted[filename] = extracted_data
+            try:
+                if form_type in ["standard_form", "Form_A_2022", "Form_B_2024"]:
+                    extracted_data = extract_standard_form(images)
+                elif form_type == "handwritten_form":
+                    extracted_data = extract_handwritten_form(images)
+                else:
+                    st.warning(f"{filename}: Unknown or unsupported form type.")
+                    continue
+
+                if "error" in extracted_data:
+                    st.warning(f"{filename}: {extracted_data['error']}")
+                    continue
+
+                st.session_state.batch_extracted[filename] = extracted_data
+            except Exception as e:
+                st.warning(f"{filename}: Extraction failed – {e}")
+                continue
 
         st.success("✅ All applications extracted.")
 
@@ -262,13 +244,15 @@ if uploaded_pdfs:
                 st.warning(f"{filename}: Failed to parse – {e}")
 
         if saved_records:
-            df = pd.DataFrame(saved_records)
-            df.to_excel(EXTRACTED_DATA_PATH, index=False)
-            st.success("✅ All extracted records saved.")
-            st.session_state.trigger_validation = True
+            try:
+                df = pd.DataFrame(saved_records)
+                df.to_excel(EXTRACTED_DATA_PATH, index=False)
+                st.success("✅ All extracted records saved.")
+                st.session_state.trigger_validation = True
+            except Exception as e:
+                st.error(f"❌ Failed to save extracted records: {e}")
 
 
-# === Validation and Email Notification ===
 def is_missing(value):
     try:
         if pd.isna(value):
@@ -282,7 +266,11 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
 
     any_missing = False
     all_missing_summary = []
-    df_check = pd.read_excel(EXTRACTED_DATA_PATH)
+    try:
+        df_check = pd.read_excel(EXTRACTED_DATA_PATH)
+    except Exception as e:
+        st.error(f"❌ Failed to read extracted data for validation: {e}")
+        st.stop()
 
     for idx, row in df_check.iterrows():
         email = str(row.get("Email", "") or "").strip()
@@ -317,7 +305,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
             if isinstance(result, tuple) and len(result) == 2:
                 updated_full_name, updated_email = result
             else:
-                updated_full_name, updated_email = full_name, email       
+                updated_full_name, updated_email = full_name, email
 
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
