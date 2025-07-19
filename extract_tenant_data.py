@@ -211,6 +211,16 @@ def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
             cleaned.append(v)
     return cleaned
 
+def normalize_all_dates(data):
+    def is_date_field(k): return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
+    def normalize(obj):
+        if isinstance(obj, dict):
+            return {k: normalize_date_string(v) if is_date_field(k) else normalize(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [normalize(i) for i in obj]
+        return obj
+    return normalize(data)
+
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
     employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
