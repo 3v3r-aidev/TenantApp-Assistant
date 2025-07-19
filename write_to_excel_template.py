@@ -8,7 +8,7 @@ from io import BytesIO
 from datetime import datetime, date
 import pandas as pd
 from openpyxl.styles import Alignment
-from extract_tenant_data import normalize_all_dates
+from extract_tenant_data import normalize_all_dates, normalize_date_string
 
 
 def calc_age(dob_str: str) -> str | int:
@@ -61,17 +61,6 @@ def lookup_property_info(address: str, reference_file="PropertyInfo.xlsx"):
     except Exception as e:
         print("❌ Error in lookup_property_info:", e)
         return None, None
-
-def normalize_date_string(date_str):
-    if not isinstance(date_str, str):
-        return date_str
-    clean = re.sub(r"[-.]", "/", date_str.strip())
-    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%d/%m/%y", "%Y/%m/%d", "%Y/%d/%m"):
-        try:
-            return datetime.strptime(clean, fmt).strftime("%m/%d/%Y")
-        except ValueError:
-            continue
-    return date_str
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 1. write_flattened_to_template  (adds strict input-type guard)
