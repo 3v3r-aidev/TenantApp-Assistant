@@ -7,6 +7,8 @@ import fitz  # PyMuPDF
 from PIL import Image
 import openai
 import streamlit as st
+from datetime import datetime
+
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
@@ -210,6 +212,19 @@ def clean_vehicle_data(vehicles: List[Dict]) -> List[Dict]:
         if any(str(v.get(k, "") or "").strip() for k in ["Type", "Year", "Make", "Model", "Monthly Payment"]):
             cleaned.append(v)
     return cleaned
+
+
+def normalize_date_string(date_str):
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        return date_obj.strftime("%m/%d/%Y")
+    except Exception:
+        try:
+            date_obj = datetime.strptime(date_str, "%Y/%m/%d")
+            return date_obj.strftime("%m/%d/%Y")
+        except Exception:
+            return date_str
+
 
 def normalize_all_dates(data):
     def is_date_field(k): return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
