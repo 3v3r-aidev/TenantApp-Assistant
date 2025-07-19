@@ -227,14 +227,26 @@ def normalize_date_string(date_str):
 
 
 def normalize_all_dates(data):
-    def is_date_field(k): return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
+    def is_date_field(k): 
+        return any(d in k.lower() for d in ["date", "dob", "start", "move", "birth"])
+
     def normalize(obj):
         if isinstance(obj, dict):
-            return {k: normalize_date_string(v) if is_date_field(k) else normalize(v) for k, v in obj.items()}
+            new_obj = {}
+            for k, v in obj.items():
+                if isinstance(v, (dict, list)):
+                    new_obj[k] = normalize(v)
+                elif isinstance(v, str) and is_date_field(k):
+                    new_obj[k] = normalize_date_string(v)
+                else:
+                    new_obj[k] = v
+            return new_obj
         elif isinstance(obj, list):
-            return [normalize(i) for i in obj]
+            return [normalize(item) for item in obj]
         return obj
+
     return normalize(data)
+
 
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
