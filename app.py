@@ -7,7 +7,7 @@ from datetime import datetime
 import re
 from io import BytesIO
 from extract_tenant_data import flatten_extracted_data, parse_gpt_output, process_pdf, extract_images_from_pdf, call_gpt_vision_api
-from extract_utils import detect_form_type, extract_text_from_first_page, extract_data_by_form_type,extract_handwritten_form
+from extract_utils import detect_form_type, extract_text_from_first_page, extract_data_by_form_type,extract_handwritten_form, extract
 from write_to_excel_template import write_multiple_applicants_to_template, write_flattened_to_template, write_to_summary_template
 from write_template_holder import write_to_template_holder
 from email.message import EmailMessage
