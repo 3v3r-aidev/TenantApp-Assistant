@@ -135,8 +135,7 @@ Current Employer
 
 ### 📃 License
 
-**Proprietary Software**__
-
+_**Proprietary Software**_
 This software was developed by Rhanny Urbis for BEST | Evercrest Homes.
 All rights to the source code, design, and functionality are exclusively held by the developer and BEST | Evercrest Homes.
 ```
