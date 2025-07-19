@@ -13,25 +13,34 @@ EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
 def extract_images_from_pdf(pdf_path: str | Path) -> List[Image.Image]:
     images = []
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
-            images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
+    try:
+        with fitz.open(pdf_path) as doc:
+            for page in doc:
+                pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
+                images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
+    except Exception as e:
+        print(f"❌ Failed to extract images: {e}")
     return images
 
 
 def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
-    openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+    try:
+        openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+    except Exception as key_err:
+        return {"error": f"Missing OpenAI API key: {key_err}"}
 
     image_parts = []
     for img in images:
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        img_b64 = base64.b64encode(buf.getvalue()).decode()
-        image_parts.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{img_b64}"}
-        })
+        try:
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            img_b64 = base64.b64encode(buf.getvalue()).decode()
+            image_parts.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{img_b64}"}
+            })
+        except Exception as img_err:
+            print(f"⚠️ Error encoding image: {img_err}")
 
     messages = [
         {
@@ -119,8 +128,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
                 '  ]\n'
                 '}\n\n'
                 "Instruction for G. Animals:If the field 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?' has a checkbox values of Yes: "
-                "'Go to the field, 'If yes, list all animals to be kept on the Property': Extract Type and Breed, Name, Color, Weight, "
-                "Age in Yrs, and Gender."
+                "'Go to the field, 'If yes, list all animals to be kept on the Property': Extract Type and Breed, Name, Color, Weight, Age in Yrs, and Gender."
                 "Return as a structured list of dictionaries."
             )
         },
@@ -134,7 +142,10 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
             temperature=0,
             max_tokens=1000,
         )
-        return {"GPT_Output": response.choices[0].message.content.strip()}
+        if hasattr(response, "choices") and response.choices:
+            return {"GPT_Output": response.choices[0].message.content.strip()}
+        else:
+            return {"error": "No GPT choices returned"}
     except Exception as exc:
         return {"error": str(exc)}
 
