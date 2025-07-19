@@ -8,9 +8,13 @@ import fitz  # PyMuPDF
 from PIL import Image
 from extract_tenant_data import extract_images_from_pdf, call_gpt_vision_api
 
+
 # === Handwritten Form GPT Prompt Wrapper ===
 def call_handwritten_prompt(images: List[Image.Image]) -> Dict[str, str]:
-    openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+    try:
+        openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+    except Exception as e:
+        return {"error": f"Missing or invalid OpenAI API key: {e}"}
 
     image_parts = []
     for img in images:
@@ -98,9 +102,13 @@ def call_handwritten_prompt(images: List[Image.Image]) -> Dict[str, str]:
             temperature=0,
             max_tokens=1000,
         )
-        return {"GPT_Output": response.choices[0].message.content.strip()}
+        if hasattr(response, "choices") and response.choices:
+            return {"GPT_Output": response.choices[0].message.content.strip()}
+        else:
+            return {"error": "No choices returned by GPT"}
     except Exception as e:
         return {"error": str(e)}
+
 
 # === Other Utilities ===
 
@@ -108,8 +116,10 @@ def extract_text_from_first_page(pdf_path: Path) -> str:
     try:
         with fitz.open(pdf_path) as doc:
             return doc[0].get_text().strip()
-    except:
+    except Exception as e:
+        print(f"❌ Error extracting text from first page: {e}")
         return ""
+
 
 def detect_form_type(text: str, ocr_used: bool = False) -> str:
     if ocr_used:
@@ -120,21 +130,32 @@ def detect_form_type(text: str, ocr_used: bool = False) -> str:
         return "handwritten_form"
     return "unknown"
 
+
 def extract_standard_form(images: List[Image.Image]) -> Dict[str, str]:
-    return call_gpt_vision_api(images)
+    try:
+        return call_gpt_vision_api(images)
+    except Exception as e:
+        return {"error": f"Standard form extraction failed: {e}"}
+
 
 def extract_handwritten_form(images: List[Image.Image]) -> Dict[str, str]:
-    return call_handwritten_prompt(images)
+    try:
+        return call_handwritten_prompt(images)
+    except Exception as e:
+        return {"error": f"Handwritten form extraction failed: {e}"}
+
 
 def extract_data_by_form_type(pdf_path: Path) -> Tuple[Dict[str, str], Dict]:
-    images = extract_images_from_pdf(pdf_path)
-    text = extract_text_from_first_page(pdf_path)
+    try:
+        images = extract_images_from_pdf(pdf_path)
+        text = extract_text_from_first_page(pdf_path)
+        form_type = detect_form_type(text)
 
-    form_type = detect_form_type(text)
-
-    if form_type == "standard_form":
-        return extract_standard_form(images), {}
-    elif form_type == "handwritten_form":
-        return extract_handwritten_form(images), {}
-    else:
-        return {"error": "Unsupported or unknown form type"}, {}
+        if form_type == "standard_form":
+            return extract_standard_form(images), {}
+        elif form_type == "handwritten_form":
+            return extract_handwritten_form(images), {}
+        else:
+            return {"error": f"Unsupported or unknown form type: {form_type}"}, {}
+    except Exception as e:
+        return {"error": f"extract_data_by_form_type failed: {e}"}, {}
