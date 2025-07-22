@@ -304,6 +304,24 @@ def write_multiple_applicants_to_template(
         ws["J3"] = gross_ratio
         ws["J4"] = net_ratio
 
+        # ── Compute summary_rent (max rent among applicants) ────────
+        try:
+            rent_values = []
+            for _, row_series in df.iterrows():
+                rent_raw = row_series.get("Monthly Rent", "")
+                if isinstance(rent_raw, str):
+                    rent_clean = rent_raw.replace("$", "").replace(",", "").strip()
+                else:
+                    rent_clean = str(rent_raw).strip()
+                if rent_clean.replace(".", "", 1).isdigit():
+                    rent_values.append(float(rent_clean))
+            summary_rent = max(rent_values) if rent_values else ""
+        except Exception as e:
+            print(f"⚠️ Failed to compute summary_rent: {e}")
+            summary_rent = ""
+
+        first_row["summary_rent"] = summary_rent  # ✅ This will be passed to the summary writer
+
         # ── Fill applicant columns ──────────────────────────────────────
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
         start_row = 14
@@ -403,6 +421,7 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
@@ -558,6 +577,21 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Error assembling animal info: {e}")
 
+        # ── Determine summary_rent ───────────────────────────
+        try:
+            if flat_data.get("summary_rent"):  # already passed from multiple-applicant template
+                summary_rent = flat_data["summary_rent"]
+            else:
+                addr = flat_data.get("Applicant's Current Address", {})
+                if isinstance(addr, dict):
+                    summary_rent = addr.get("Rent", "")
+                else:
+                    summary_rent = ""
+            flat_data["summary_rent"] = summary_rent
+        except Exception as e:
+            print(f"⚠️ Failed to determine summary_rent: {e}")
+            summary_rent = ""
+
         # ── Map to Summary Fields ────────────────────────────
         try:
             write_map = {
@@ -567,7 +601,7 @@ def write_to_summary_template(
                 "B5": flat_data.get("Application Fee", ""),
                 "B6": f"{gross_ratio}/{net_ratio}",
                 "B7": str(total_occupants),
-                "B8": flat_data.get("Rent", ""),
+                "B8": summary_rent,
                 "B9": flat_data.get("Applicant's Current Employer", ""),
                 "B12": vehicle,
                 "B13": animals,
@@ -589,9 +623,3 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
-
-
-
-
-
-
