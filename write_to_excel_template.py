@@ -477,9 +477,13 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Error parsing co-applicant income: {e}")
 
-        net_total = gross + co_total
-        gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
-        net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+        try:
+            net_total = gross + co_total
+            gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+            net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+        except Exception as e:
+            print(f"⚠️ Error calculating ratios: {e}")
+            gross_ratio, net_ratio = "", ""
 
         # ── Occupant Count Correction ─────────────────────────
         try:
@@ -581,5 +585,6 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
 
