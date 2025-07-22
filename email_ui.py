@@ -1,22 +1,9 @@
 import streamlit as st
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import smtplib
 import traceback
-import sys
-import os
-import pandas as pd
 
-# --- Constants ---
-EXTRACTED_DATA_PATH = "templates/Template_Data_Holder.xlsx"
-EMAIL_HOST = "smtp.ionos.com"
-EMAIL_PORT = 587  # STARTTLS port
-
-# --- Load credentials ---
-EMAIL_USER = st.secrets["email"]["EMAIL_USER"]
-EMAIL_PASS = st.secrets["email"]["EMAIL_PASS"]
-
-# --- Function to render email UI ---
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
     if not email:
         st.error("\u274C No valid email address available.")
@@ -56,9 +43,9 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
                 message["From"] = email_user
                 message["To"] = to_email
                 message["Subject"] = subject
-                message.attach(MIMEText(body, "plain"))
+                message.attach(MIMEText(body, "plain"))  # ✅ Use the updated message from textarea
 
-                with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=15) as server:
+                with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
                     server.starttls()
                     server.login(email_user, email_pass)
                     server.sendmail(email_user, to_email, message.as_string())
@@ -80,7 +67,3 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
                 st.code(traceback.format_exc())
 
         return applicant_name, to_email
-
-        # Always return updated name + email
-        return applicant_name, to_email
-
