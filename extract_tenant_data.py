@@ -14,18 +14,6 @@ from datetime import datetime
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
 
-def extract_images_from_pdf(pdf_path: str | Path) -> List[Image.Image]:
-    images = []
-    try:
-        with fitz.open(pdf_path) as doc:
-            for page in doc:
-                pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
-                images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
-    except Exception as e:
-        print(f"❌ Failed to extract images: {e}")
-    return images
-
-
 def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     try:
         openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
@@ -46,104 +34,106 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
             print(f"⚠️ Error encoding image: {img_err}")
 
     messages = [
-    {
-        "role": "system",
-        "content": (
-            "Extract structured tenant application data and return a JSON object using the exact schema below. "
-            "All fields must be included, even if null. Do NOT add explanations.\n\n"
-            "**Required focus:** Extract accurately the following sections:\n"
-            "- C. Representation and Marketing\n"
-            "- Employment and Other Income\n"
-            "- E. Occupant Information\n"
-            "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
-            "- G. Animals (list if \"Will any animals be kept on the Property?\" is \"Yes\")\n"
-            "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name)\n"
-            "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
-            "Return only this JSON format:\n"
-            "{\n"
-            '  "Property Address": string | null,\n'
-            '  "Move-in Date": string | null,\n'
-            '  "Monthly Rent": string | null,\n'
-            '  "FullName": string | null,\n'
-            '  "PhoneNumber": string | null,\n'
-            '  "Email": string | null,\n'
-            '  "DOB": string | null,\n'
-            '  "SSN": string | null,\n'
-            '  "Co-applicants": [\n'
-            '    {"Name": string | null, "Relationship": string | null}\n'
-            '  ],\n'
-            '  "Applicant\'s Current Address": {\n'
-            '    "Address": string | null,\n'
-            '    "Phone:Day": string | null,\n'
-            '    "Landlord or Property Manager\'s Name": string | null,\n'
-            '    "Rent": string | null\n'
-            '  },\n'
-            '  "IDType": string | null,\n'
-            '  "DriverLicenseNumber": string | null,\n'
-            '  "IDIssuer": string | null,\n'
-            '  "Nationality": string | null,\n'
-            '  "FormSource": string | null,\n'
-            '  "ApplicationDate": string | null,\n'
-            '  "C.Representation and Marketing": {\n'
-            '    "Name": string | null,\n'
-            '    "Company": string | null,\n'
-            '    "E-mail": string | null,\n'
-            '    "Phone Number": string | null\n'
-            '  },\n'
-            '  "Employment and Other Income:": {\n'
-            '    "Applicant\'s Current Employer": string | null,\n'
-            '    "Current Employer Details": {\n'
-            '      "Employment Verification Contact": string | null,\n'
-            '      "Address": string | null,\n'
-            '      "Phone": string | null,\n'
-            '      "E-mail": string | null,\n'
-            '      "Position": string | null,\n'
-            '      "Start Date": string | null,\n'
-            '      "Gross Monthly Income": string | null\n'
-            '    },\n'
-            '    "Child Support": string | null\n'
-            '  },\n'
-            '  "E. Occupant Information": [\n'
-            '    {\n'
-            '      "Name": string | null,\n'
-            '      "Relationship": string | null,\n'
-            '      "DOB": string | null\n'
-            '    }\n'
-            '  ],\n'
-            '  "F. Vehicle Information:": [\n'
-            '    {\n'
-            '      "Type": string | null,\n'
-            '      "Year": string | null,\n'
-            '      "Make": string | null,\n'
-            '      "Model": string | null,\n'
-            '      "Monthly Payment": string | null\n'
-            '    }\n'
-            '  ],\n'
-            '  "G. Animals": [\n'
-            '    {\n'
-            '      "Type and Breed": string | null,\n'
-            '      "Name": string | null,\n'
-            '      "Color": string | null,\n'
-            '      "Weight": string | null,\n'
-            '      "Age in Yrs": string | null,\n'
-            '      "Gender": string | null\n'
-            '    }\n'
-            '  ]\n'
-            '}\n\n'
-            "Instruction for G. Animals: First, locate the question: 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?'. "
-            "If the checkbox or answer is 'Yes', then go to the section that begins with: 'If yes, list all animals to be kept on the Property' and extract the following details for each animal:\n"
-            "- Type and Breed\n"
-            "- Name\n"
-            "- Color\n"
-            "- Weight\n"
-            "- Age in Yrs\n"
-            "- Gender\n\n"
-            "Return the results in the structured list format under the key 'G. Animals'. "
-            "If the checkbox or answer is 'No', return an empty list for 'G. Animals'."
-        )
-    },
-    {"role": "user", "content": image_parts}
-]
+        {
+            "role": "system",
+            "content": (
+                "Extract structured tenant application data and return a JSON object using the exact schema below. "
+                "All fields must be included, even if null. Do NOT add explanations.\n\n"
+                "**Required focus:** Extract accurately the following sections:\n"
+                "- C. Representation and Marketing\n"
+                "- Employment and Other Income\n"
+                "- E. Occupant Information\n"
+                "- F. Vehicle Information (must return as a list with Monthly Payment per vehicle)\n"
+                "- G. Animals (list if \"Will any animals be kept on the Property?\" is \"Yes\")\n"
+                "- Applicant's Current Address (must be a nested object with Address, Phone:Day, Landlord Name, Move-out Date, Reason for Move)\n"
+                "- Co-applicants: list all co-applicants with their Name and Relationship\n\n"
+                "Return only this JSON format:\n"
+                "{\n"
+                '  "Property Address": string | null,\n'
+                '  "Move-in Date": string | null,\n'
+                '  "Monthly Rent": string | null,\n'
+                '  "FullName": string | null,\n'
+                '  "PhoneNumber": string | null,\n'
+                '  "Email": string | null,\n'
+                '  "DOB": string | null,\n'
+                '  "SSN": string | null,\n'
+                '  "Co-applicants": [\n'
+                '    {"Name": string | null, "Relationship": string | null}\n'
+                '  ],\n'
+                '  "Applicant\'s Current Address": {\n'
+                '    "Address": string | null,\n'
+                '    "Phone:Day": string | null,\n'
+                '    "Landlord or Property Manager\'s Name": string | null,\n'
+                '    "Rent": string | null,\n'
+                '    "Move-out Date": string | null,\n'
+                '    "Reason for Move": string | null\n'
+                '  },\n'
+                '  "IDType": string | null,\n'
+                '  "DriverLicenseNumber": string | null,\n'
+                '  "IDIssuer": string | null,\n'
+                '  "Nationality": string | null,\n'
+                '  "FormSource": string | null,\n'
+                '  "ApplicationDate": string | null,\n'
+                '  "C.Representation and Marketing": {\n'
+                '    "Name": string | null,\n'
+                '    "Company": string | null,\n'
+                '    "E-mail": string | null,\n'
+                '    "Phone Number": string | null\n'
+                '  },\n'
+                '  "Employment and Other Income:": {\n'
+                '    "Applicant\'s Current Employer": string | null,\n'
+                '    "Current Employer Details": {\n'
+                '      "Employment Verification Contact": string | null,\n'
+                '      "Address": string | null,\n'
+                '      "Phone": string | null,\n'
+                '      "E-mail": string | null,\n'
+                '      "Position": string | null,\n'
+                '      "Start Date": string | null,\n'
+                '      "Gross Monthly Income": string | null\n'
+                '    },\n'
+                '    "Child Support": string | null\n'
+                '  },\n'
+                '  "E. Occupant Information": [\n'
+                '    {\n'
+                '      "Name": string | null,\n'
+                '      "Relationship": string | null,\n'
+                '      "DOB": string | null\n'
+                '    }\n'
+                '  ],\n'
+                '  "F. Vehicle Information:": [\n'
+                '    {\n'
+                '      "Type": string | null,\n'
+                '      "Year": string | null,\n'
+                '      "Make": string | null,\n'
+                '      "Model": string | null,\n'
+                '      "Monthly Payment": string | null\n'
+                '    }\n'
+                '  ],\n'
+                '  "G. Animals": [\n'
+                '    {\n'
+                '      "Type and Breed": string | null,\n'
+                '      "Name": string | null,\n'
+                '      "Color": string | null,\n'
+                '      "Weight": string | null,\n'
+                '      "Age in Yrs": string | null,\n'
+                '      "Gender": string | null\n'
+                '    }\n'
+                '  ]\n'
+                '}\n\n'
+                "Instruction for G. Animals: First, locate the question: 'Will any animals (dogs, cats, birds, reptiles, fish, other types of animals) be kept on the Property?'. "
+                "If the checkbox or answer is 'Yes', then go to the section that begins with: 'If yes, list all animals to be kept on the Property' and extract the following details for each animal:\n"
+                "- Type and Breed\n"
+                "- Name\n"
+                "- Color\n"
+                "- Weight\n"
+                "- Age in Yrs\n"
+                "- Gender\n\n"
+                "Return the results in the structured list format under the key 'G. Animals'. "
+                "If the checkbox or answer is 'No', return an empty list for 'G. Animals'."
+            )
+        },
+        {"role": "user", "content": image_parts}
+    ]
 
     try:
         response = openai.chat.completions.create(
@@ -158,6 +148,7 @@ def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
             return {"error": "No GPT choices returned"}
     except Exception as exc:
         return {"error": str(exc)}
+
 
 def extract_text_from_first_page(pdf_path: str | Path) -> str:
     try:
@@ -261,9 +252,6 @@ def normalize_all_dates(data):
 
     return normalize(data)
 
-
-
-
 def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     employment = data.get("Employment and Other Income:", {})
     employer_info = employment.get("Current Employer Details", {}) if isinstance(employment.get("Current Employer Details"), dict) else {}
@@ -273,25 +261,36 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     address_str = addr_block.get("Address", "") if isinstance(addr_block, dict) else addr_block
     address_phone = addr_block.get("Phone:Day", "") if isinstance(addr_block, dict) else ""
     landlord_name = addr_block.get("Landlord or Property Manager's Name", "") if isinstance(addr_block, dict) else ""
+    move_out_date = addr_block.get("Move-out Date", "") if isinstance(addr_block, dict) else ""
+    reason_for_move = addr_block.get("Reason for Move", "") if isinstance(addr_block, dict) else ""
+    current_rent = addr_block.get("Rent", "") if isinstance(addr_block, dict) else ""
 
+    info_of_address = "\n".join([
+        f"Move-in Date: {data.get('Move-in Date', '')}",
+        f"Move-out Date: {move_out_date}",
+        f"Current Rent: {current_rent}",
+        f"Reason for Move: {reason_for_move}"
+    ]).strip()
+
+    # --- Occupants ---
     occupants = data.get("E. Occupant Information", [])
-    children_count = 0
     if not isinstance(occupants, list):
         occupants = []
-    for o in occupants:
-        if isinstance(o, dict):
-            relationship = str(o.get("Relationship", "") or "").strip().lower()
-            if relationship in ("son", "daughter"):
-                children_count += 1
+    occupant_count = sum(1 for o in occupants if isinstance(o, dict) and o.get("Name"))
+
+    children_count = sum(
+        1 for o in occupants
+        if isinstance(o, dict) and str(o.get("Relationship", "")).strip().lower() in ("son", "daughter")
+    )
 
     co_applicants = data.get("Co-applicants", [])
-    co_applicant_count = 0
-    if isinstance(co_applicants, list):
-        co_applicant_count = sum(1 for person in co_applicants if person.get("Name"))
-    occupant_count = sum(1 for o in occupants if isinstance(o, dict) and o.get("Name"))
+    if not isinstance(co_applicants, list):
+        co_applicants = []
+    co_applicant_count = sum(1 for person in co_applicants if person.get("Name"))
+
     total_occupants = 1 + co_applicant_count + occupant_count
 
-
+    # --- Vehicles ---
     vehicles = data.get("F. Vehicle Information:", [])
     if isinstance(vehicles, dict):
         vehicles = [vehicles]
@@ -323,33 +322,23 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
 
     total_vehicle_payment = f"{sum(payment_floats):.2f}" if payment_floats else ""
 
-    # ---- Animals processing ----
+    # --- Animals ---
     animals = data.get("G. Animals", [])
     if isinstance(animals, dict):
         animals = [animals]
     elif not isinstance(animals, list):
         animals = []
 
-    cleaned_animals = []
-    for a in animals:
-        if not isinstance(a, dict):
-            continue
-        if any(str(a.get(k, "") or "").strip() for k in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"]):
-            cleaned_animals.append(a)
+    cleaned_animals = [
+        a for a in animals
+        if isinstance(a, dict) and any(str(a.get(k, "") or "").strip() for k in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"])
+    ]
     no_of_animals = len(cleaned_animals)
 
-    # Format cleaned animals into multi-line summary for Excel (e.g., B13)
-    animal_lines = []
-    for a in cleaned_animals:
-        parts = []
-        for key in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"]:
-            val = str(a.get(key, "")).strip()
-            if val:
-                parts.append(f"{key}: {val}")
-        if parts:
-            animal_lines.append(" | ".join(parts))
-    animal_summary = "\n".join(animal_lines) if animal_lines else ""
-    # ----------------------------
+    animal_summary = "\n".join(
+        " | ".join(f"{key}: {a.get(key, '')}".strip() for key in ["Type and Breed", "Name", "Color", "Weight", "Age in Yrs", "Gender"] if a.get(key))
+        for a in cleaned_animals
+    )
 
     flat = {
         "Property Address": data.get("Property Address", ""),
@@ -364,6 +353,10 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Applicant's Current Address": address_str,
         "Landlord Phone": address_phone,
         "Landlord or Property Manager's Name": landlord_name,
+        "Move-out Date": move_out_date,
+        "Reason for Move": reason_for_move,
+        "Current Rent": current_rent,
+        "Info of Current Address": info_of_address,
         "IDType": data.get("IDType", ""),
         "DriverLicenseNumber": data.get("DriverLicenseNumber", ""),
         "IDIssuer": data.get("IDIssuer", ""),
@@ -376,6 +369,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "Rep Phone": rep.get("Phone Number", ""),
         "Applicant's Current Employer": employment.get("Applicant's Current Employer", ""),
         "Employment Verification Contact": employer_info.get("Employment Verification Contact", ""),
+        "Info of Current Address": info_of_address,
         "Employer Address": employer_info.get("Address", ""),
         "Employer Phone": employer_info.get("Phone", ""),
         "Employer Email": employer_info.get("E-mail", ""),
@@ -392,10 +386,13 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
         "No of Occupants": total_occupants,
         "No of Animals": no_of_animals,
         "G. Animals": cleaned_animals,
-        "Animal Summary": animal_summary  # ✅ Now flattened and ready for writing to B13
+        "Animal Summary": animal_summary,
+        "E. Occupant Information": occupants,
     }
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
+
+
     
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
