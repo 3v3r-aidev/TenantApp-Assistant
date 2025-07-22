@@ -120,7 +120,15 @@ def write_flattened_to_template(
             ws["F18"] = data.get("DriverLicenseNumber", "")
             ws["F19"] = data.get("DOB", "")
             ws["F20"] = calc_age(data.get("DOB", ""))
-            ws["F21"] = str(data.get("No of Occupants", ""))
+            
+            num_occupants = str(data.get("No of Occupants", ""))
+            ws["F21"] = num_occupants  # Always write to F21
+
+            # Only write to G21 if there's a second applicant (i.e., if G14 is filled)
+            second_applicant = str(ws["G14"].value or "").strip()
+            if second_applicant:
+               ws["G21"] = num_occupants
+
             ws["F22"] = data.get("No of Children", "")
             ws["F23"] = data.get("Applicant's Current Address", "")
             ws["F24"] = data.get("Landlord or Property Manager's Name", "")
