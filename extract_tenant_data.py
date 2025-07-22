@@ -13,7 +13,17 @@ from datetime import datetime
 
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
-
+def extract_images_from_pdf(pdf_path: str | Path) -> List[Image.Image]:
+    images = []
+    try:
+        with fitz.open(pdf_path) as doc:
+            for page in doc:
+                pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
+                images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
+    except Exception as e:
+        print(f"❌ Failed to extract images: {e}")
+    return images
+    
 def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     try:
         openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
@@ -392,8 +402,7 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
 
     return {k: ("" if v is None else v) for k, v in flat.items()}
 
-
-    
+   
 def parse_gpt_output(form_data):
     raw = form_data.get("GPT_Output", "").strip()
 
@@ -430,3 +439,5 @@ def parse_gpt_output(form_data):
 
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid GPT JSON string: {e}")
+
+
