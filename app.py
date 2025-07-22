@@ -295,13 +295,17 @@ def is_missing(value):
 if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
     st.caption("Validating Missing Info + Sending Emails...")
 
-    any_missing = False
-    all_missing_summary = []
     try:
         df_check = pd.read_excel(EXTRACTED_DATA_PATH)
     except Exception as e:
         st.error(f"❌ Failed to read extracted data for validation: {e}")
         st.stop()
+
+    # Initialize or reset session keys
+    st.session_state["email_validation_queue"] = []
+    st.session_state["email_sent_ids"] = st.session_state.get("email_sent_ids", set())
+
+    any_missing = False
 
     for idx, row in df_check.iterrows():
         email = str(row.get("Email", "") or "").strip()
@@ -322,31 +326,41 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
 
         if missing_fields:
             any_missing = True
-            key_suffix = f"{idx}_{email.replace('@', '_').replace('.', '_') if email else f'no_email_{idx}'}"
+            st.session_state["email_validation_queue"].append({
+                "idx": idx,
+                "email": email,
+                "full_name": full_name,
+                "missing_fields": missing_fields,
+            })
 
-            result = render_email_ui(
-                email=email,
-                missing_fields=missing_fields,
-                full_name=full_name,
-                key_suffix=key_suffix,
-                email_user=EMAIL_USER,
-                email_pass=EMAIL_PASS
-            )
-
-            if isinstance(result, tuple) and len(result) == 2:
-                updated_full_name, updated_email = result
-            else:
-                updated_full_name, updated_email = full_name, email
-
-    # 🔽 Move success/failure handling into post-loop and add stop points
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
         st.session_state["trigger_validation"] = False
         st.session_state["email_validation_done"] = True
         st.stop()
     else:
-        with st.expander("📧 Missing Fields Summary", expanded=False):
-            st.info("\n".join(all_missing_summary) or "Applicants with missing info displayed above.")
+        st.info(f"📧 {len(st.session_state['email_validation_queue'])} applicant(s) need email validation.")
+
+        for i, record in enumerate(st.session_state["email_validation_queue"]):
+            email = record["email"]
+            full_name = record["full_name"]
+            missing_fields = record["missing_fields"]
+            key_suffix = f"{i}_{email.replace('@', '_').replace('.', '_') if email else f'no_email_{i}'}"
+
+            with st.expander(f"{full_name} – Missing Fields", expanded=False):
+                if key_suffix in st.session_state["email_sent_ids"]:
+                    st.success(f"✅ Email already sent to **{full_name}** at **{email}**.")
+                else:
+                    sent = render_email_ui(
+                        email=email,
+                        missing_fields=missing_fields,
+                        full_name=full_name,
+                        key_suffix=key_suffix,
+                        email_user=EMAIL_USER,
+                        email_pass=EMAIL_PASS
+                    )
+                    if sent:
+                        st.session_state["email_sent_ids"].add(key_suffix)
+
         st.session_state["email_validation_done"] = True
         st.stop()
-
