@@ -447,15 +447,54 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Failed to update _Meta counter: {e}")
 
+        # ── Safe Rent/Income Parsing ─────────────────────────
+        try:
+            rent_val = flat_data.get("Monthly Rent", "")
+            rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val else ""
+            rent = float(rent_str) if rent_str else 0
+        except Exception as e:
+            print(f"⚠️ Invalid rent value: {e}")
+            rent = 0
+
+        try:
+            gross_val = flat_data.get("Gross Monthly Income", "")
+            gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val else ""
+            gross = float(gross_str) if gross_str else 0
+        except Exception as e:
+            print(f"⚠️ Invalid gross income value: {e}")
+            gross = 0
+
+        # ── Co-applicant Parsing ─────────────────────────────
+        co_total = 0
+        try:
+            for app in flat_data.get("Co-applicants", []):
+                if not isinstance(app, dict):
+                    continue
+                val = app.get("Gross Monthly Income", "")
+                val = str(val).replace("$", "").replace(",", "").strip() if val else ""
+                co_total += float(val) if val else 0
+        except Exception as e:
+            print(f"⚠️ Error parsing co-applicant income: {e}")
+
+        net_total = gross + co_total
+        gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+        net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+
         # ── Occupant Count Correction ─────────────────────────
         try:
             co_applicants = flat_data.get("Co-applicants", [])
             occupants = flat_data.get("E. Occupant Information", [])
 
-            co_applicant_count = sum(1 for c in co_applicants if isinstance(c, dict) and c.get("Name"))
-            occupant_count = sum(1 for o in occupants if isinstance(o, dict) and o.get("Name"))
+            co_applicant_count = sum(
+                1 for c in co_applicants 
+                if isinstance(c, dict) and (c.get("Name") or c.get("FullName"))
+            )
+            occupant_count = sum(
+                1 for o in occupants 
+                if isinstance(o, dict) and (o.get("Name") or o.get("FullName"))
+            )
 
-            total_occupants = 1 + co_applicant_count + occupant_count  # 1 main applicant
+            total_occupants = 1 + co_applicant_count + occupant_count
         except Exception as e:
             print(f"⚠️ Failed to compute total occupants: {e}")
             total_occupants = flat_data.get("No of Occupants", "")
@@ -516,15 +555,6 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Error assembling animal info: {e}")
 
-        # ── Read ratios directly from J3 and J4 ────────────────
-        try:
-            j3_ratio = str(ws["J3"].value or "").strip()
-            j4_ratio = str(ws["J4"].value or "").strip()
-            combined_ratio = f"{j3_ratio}/{j4_ratio}"
-        except Exception as e:
-            print(f"⚠️ Failed to read J3 and J4: {e}")
-            combined_ratio = ""
-
         # ── Map to Summary Fields ────────────────────────────
         try:
             write_map = {
@@ -532,7 +562,7 @@ def write_to_summary_template(
                 "B3": flat_data.get("Monthly Rent", ""),
                 "B4": flat_data.get("Move-in Date", ""),
                 "B5": flat_data.get("Application Fee", ""),
-                "B6": combined_ratio,
+                "B6": f"{gross_ratio}/{net_ratio}",
                 "B7": str(total_occupants),
                 "B8": flat_data.get("Rent", ""),
                 "B9": flat_data.get("Applicant's Current Employer", ""),
@@ -556,6 +586,7 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
 
 
