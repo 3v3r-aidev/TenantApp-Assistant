@@ -288,7 +288,9 @@ def flatten_extracted_data(data: Dict) -> Dict[str, str]:
     co_applicant_count = 0
     if isinstance(co_applicants, list):
         co_applicant_count = sum(1 for person in co_applicants if person.get("Name"))
-    total_occupants = 1 + co_applicant_count
+    occupant_count = sum(1 for o in occupants if isinstance(o, dict) and o.get("Name"))
+    total_occupants = 1 + co_applicant_count + occupant_count
+
 
     vehicles = data.get("F. Vehicle Information:", [])
     if isinstance(vehicles, dict):
