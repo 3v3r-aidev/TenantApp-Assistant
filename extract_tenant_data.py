@@ -14,15 +14,40 @@ from datetime import datetime
 EXTRACTED_DATA_PATH = "Template_Data_Holder.xlsx"
 
 def extract_images_from_pdf(pdf_path: str | Path) -> List[Image.Image]:
+    """
+    Convert all pages of a PDF into high-resolution PIL images.
+
+    Args:
+        pdf_path (str | Path): Path to the PDF file.
+
+    Returns:
+        List[Image.Image]: List of PIL Image objects, one for each page.
+    
+    Notes:
+        - Uses 2x zoom scaling (~144 DPI) for higher quality suitable for OCR or GPT Vision.
+        - Handles errors gracefully and prints diagnostic messages on failure.
+        - Supports both str and Path types for `pdf_path`.
+    """
     images = []
+
     try:
         with fitz.open(pdf_path) as doc:
             for page in doc:
-                pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
-                images.append(Image.open(io.BytesIO(pix.tobytes("png"))))
+                # Define zoom factor for high-resolution rendering
+                zoom = 2.0  # 2x zoom gives ~144 DPI (sufficient for clean OCR)
+                mat = fitz.Matrix(zoom, zoom)
+
+                # Render page to pixmap (RGB colorspace)
+                pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+
+                # Convert raw pixmap bytes to a PIL image
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                images.append(img)
     except Exception as e:
-        print(f"❌ Failed to extract images: {e}")
+        print(f"❌ Failed to extract images from PDF: {e}")
+
     return images
+
     
 def call_gpt_vision_api(images: List[Image.Image]) -> Dict[str, str]:
     try:
