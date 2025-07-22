@@ -464,21 +464,24 @@ def write_to_summary_template(
             print(f"⚠️ Invalid gross income value: {e}")
             gross = 0
 
-        # ── Co-applicant Parsing ─────────────────────────────
-        co_total = 0
+        # ── Gross & Net Ratio Calculation (Updated) ──────────────
         try:
+            co_total = 0
             for app in flat_data.get("Co-applicants", []):
-                if not isinstance(app, dict):
-                    continue
-                val = app.get("Gross Monthly Income", "")
-                val = str(val).replace("$", "").replace(",", "").strip() if val else ""
-                co_total += float(val) if val else 0
+                if isinstance(app, dict):
+                    val = str(app.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
+                    try:
+                        if val:
+                            co_total += float(val)
+                    except:
+                        continue
+            net_total = gross + co_total
+            gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
+            net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
         except Exception as e:
-            print(f"⚠️ Error parsing co-applicant income: {e}")
-
-        net_total = gross + co_total
-        gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
-        net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
+            print(f"⚠️ Failed to compute income ratios: {e}")
+            gross_ratio = ""
+            net_ratio = ""
 
         # ── Occupant Count Correction ─────────────────────────
         try:
@@ -586,6 +589,7 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
 
 
