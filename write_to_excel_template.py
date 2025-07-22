@@ -122,7 +122,7 @@ def write_flattened_to_template(
             ws["F20"] = calc_age(data.get("DOB", ""))
             
             num_occupants = str(data.get("No of Occupants", ""))
-            ws["F21"] = num_occupants  # Always write to F21
+            ws["F21"] = str(num_occupants)  # Always write to F21
 
             # Only write to G21 if there's a second applicant (i.e., if G14 is filled)
             second_applicant = str(ws["G14"].value or "").strip()
@@ -422,9 +422,7 @@ def write_to_summary_template(
         elif hasattr(flat_data, "to_dict"):
             flat_data = flat_data.to_dict()
         else:
-            raise TypeError(
-                f"write_to_summary_template expected dict/Series, got {type(flat_data)}"
-            )
+            raise TypeError(f"write_to_summary_template expected dict/Series, got {type(flat_data)}")
 
         flat_data = normalize_all_dates(flat_data)
 
@@ -483,6 +481,19 @@ def write_to_summary_template(
         gross_ratio = f"{gross / rent:.2f}" if rent > 0 else ""
         net_ratio = f"{net_total / rent:.2f}" if rent > 0 else ""
 
+        # ── Occupant Count Correction ─────────────────────────
+        try:
+            co_applicants = flat_data.get("Co-applicants", [])
+            occupants = flat_data.get("E. Occupant Information", [])
+
+            co_applicant_count = sum(1 for c in co_applicants if isinstance(c, dict) and c.get("Name"))
+            occupant_count = sum(1 for o in occupants if isinstance(o, dict) and o.get("Name"))
+
+            total_occupants = 1 + co_applicant_count + occupant_count  # 1 main applicant
+        except Exception as e:
+            print(f"⚠️ Failed to compute total occupants: {e}")
+            total_occupants = flat_data.get("No of Occupants", "")
+
         # ── Vehicle String Assembly ───────────────────────────
         vehicle = ""
         try:
@@ -504,7 +515,7 @@ def write_to_summary_template(
                 v_makes = str(flat_data.get("Vehicle Make", "")).split(",")
                 v_models = str(flat_data.get("Vehicle Model", "")).split(",")
                 for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
-                    line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}".strip()
+                    line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}"
                     if line:
                         vehicle_lines.append(line)
             vehicle = "\n".join(vehicle_lines)
@@ -547,7 +558,7 @@ def write_to_summary_template(
                 "B4": flat_data.get("Move-in Date", ""),
                 "B5": flat_data.get("Application Fee", ""),
                 "B6": f"{gross_ratio}/{net_ratio}",
-                "B7": flat_data.get("No of Occupants", ""),
+                "B7": str(total_occupants),  # ✅ Use recalculated total
                 "B8": flat_data.get("Rent", ""),
                 "B9": flat_data.get("Applicant's Current Employer", ""),
                 "B12": vehicle,
@@ -556,7 +567,7 @@ def write_to_summary_template(
 
             for cell, value in write_map.items():
                 ws[cell] = value
-            
+
         except Exception as e:
             print(f"❌ Error writing fields to worksheet: {e}")
             traceback.print_exc()
@@ -570,4 +581,5 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
