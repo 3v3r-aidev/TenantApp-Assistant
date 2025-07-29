@@ -626,18 +626,50 @@ def write_to_summary_template(
 
         # ── Determine summary_rent ───────────────────────────
         try:
-            if flat_data.get("summary_rent"):  # already passed from multiple-applicant template
-                summary_rent = flat_data["summary_rent"]
+            rents = []
+            main_rent = flat_data.get("Current Rent", "")
+            if main_rent:
+                rents.append(main_rent)
+            for c in flat_data.get("Co-applicants", []):
+                if isinstance(c, dict):
+                    r = c.get("Current Rent", "")
+                    if r:
+                        rents.append(r)
+            numeric_rents = []
+            for r in rents:
+                try:
+                    r_clean = str(r).replace("$", "").replace(",", "").strip()
+                    if r_clean.replace(".", "", 1).isdigit():
+                        numeric_rents.append(float(r_clean))
+                except:
+                    continue
+            if len(numeric_rents) > 1:
+                summary_rent = max(numeric_rents)
+            elif len(numeric_rents) == 1:
+                summary_rent = numeric_rents[0]
             else:
-                addr = flat_data.get("Applicant's Current Address", {})
-                if isinstance(addr, dict):
-                    summary_rent = addr.get("Rent", "")
-                else:
-                    summary_rent = ""
-            flat_data["summary_rent"] = summary_rent
+                summary_rent = ""
         except Exception as e:
             print(f"⚠️ Failed to determine summary_rent: {e}")
             summary_rent = ""
+
+        flat_data["summary_rent"] = summary_rent
+
+        # ── Employer Line Assembly ───────────────────────────
+        try:
+            employers = []
+            main_emp = flat_data.get("Applicant's Current Employer", "")
+            if main_emp:
+                employers.append(main_emp)
+            for c in flat_data.get("Co-applicants", []):
+                if isinstance(c, dict):
+                    co_emp = c.get("Applicant's Current Employer", "") or c.get("Employer", "")
+                    if co_emp:
+                        employers.append(co_emp)
+            employer_block = "\n".join(employers)
+        except Exception as e:
+            print(f"⚠️ Failed to assemble employers: {e}")
+            employer_block = flat_data.get("Applicant's Current Employer", "")
 
         # ── Map to Summary Fields ────────────────────────────
         try:
@@ -649,7 +681,7 @@ def write_to_summary_template(
                 "B6": f"{gross_ratio}/{net_ratio}",
                 "B7": str(total_occupants),
                 "B8": summary_rent,
-                "B9": flat_data.get("Applicant's Current Employer", ""),
+                "B9": employer_block,
                 "B12": vehicle,
                 "B13": animals,
             }
