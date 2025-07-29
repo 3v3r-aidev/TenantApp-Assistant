@@ -481,6 +481,7 @@ def write_to_summary_template(
     from openpyxl import load_workbook
     from datetime import datetime
     import traceback
+    import re
 
     try:
         if isinstance(flat_data, dict):
@@ -574,22 +575,19 @@ def write_to_summary_template(
                     if line.strip():
                         vehicle_lines.append(line.strip())
 
-            # Co-applicant vehicle info
-            for co_app in flat_data.get("Co-applicants", []):
-                if not isinstance(co_app, dict):
-                    continue
-                co_vehicles = co_app.get("F. Vehicle Information:", [])
-                if isinstance(co_vehicles, list):
-                    for v in co_vehicles:
-                        if not isinstance(v, dict):
-                            continue
-                        line = " ".join(
-                            str(v.get(k, "")).strip()
-                            for k in ("Type", "Year", "Make", "Model")
-                            if v.get(k)
-                        ).strip()
-                        if line:
-                            vehicle_lines.append(line)
+            # Co-applicant vehicle info from flattened keys
+            co_vehicle_map = {}
+            for key, val in flat_data.items():
+                match = re.match(r"Co-applicant (\d+)'s Vehicle (Type|Year|Make|Model)", key)
+                if match:
+                    idx, attr = match.groups()
+                    co_vehicle_map.setdefault(idx, {})[attr] = str(val).strip()
+
+            for idx in sorted(co_vehicle_map.keys(), key=int):
+                entry = co_vehicle_map[idx]
+                line = " ".join(entry.get(k, "") for k in ("Type", "Year", "Make", "Model")).strip()
+                if line:
+                    vehicle_lines.append(line)
         except Exception as e:
             print(f"⚠️ Error building vehicle info: {e}")
 
@@ -600,11 +598,10 @@ def write_to_summary_template(
             if primary:
                 employer_lines.add(primary.strip())
 
-            for c in flat_data.get("Co-applicants", []):
-                if isinstance(c, dict):
-                    emp = c.get("Applicant's Current Employer", "")
-                    if emp:
-                        employer_lines.add(emp.strip())
+            # Co-applicant employers from flattened keys
+            for key, val in flat_data.items():
+                if re.fullmatch(r"Co-applicant \d+'s Current Employer", key) and val:
+                    employer_lines.add(str(val).strip())
         except Exception as e:
             print(f"⚠️ Error building employer info: {e}")
 
@@ -683,6 +680,7 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
 
 
