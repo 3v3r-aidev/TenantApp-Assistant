@@ -551,6 +551,7 @@ def write_to_summary_template(
         # ── Vehicle Info ───────────────────────────────
         vehicle_lines = []
         try:
+            # Primary applicant's vehicle info
             if isinstance(flat_data.get("F. Vehicle Information:"), list):
                 for v in flat_data["F. Vehicle Information:"]:
                     if not isinstance(v, dict):
@@ -563,6 +564,7 @@ def write_to_summary_template(
                     if line:
                         vehicle_lines.append(line)
             else:
+                # fallback for flat fields
                 v_types = str(flat_data.get("Vehicle Type", "")).split(",")
                 v_years = str(flat_data.get("Vehicle Year", "")).split(",")
                 v_makes = str(flat_data.get("Vehicle Make", "")).split(",")
@@ -571,6 +573,23 @@ def write_to_summary_template(
                     line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}"
                     if line.strip():
                         vehicle_lines.append(line.strip())
+
+            # Co-applicant vehicle info
+            for co_app in flat_data.get("Co-applicants", []):
+                if not isinstance(co_app, dict):
+                    continue
+                co_vehicles = co_app.get("F. Vehicle Information:", [])
+                if isinstance(co_vehicles, list):
+                    for v in co_vehicles:
+                        if not isinstance(v, dict):
+                            continue
+                        line = " ".join(
+                            str(v.get(k, "")).strip()
+                            for k in ("Type", "Year", "Make", "Model")
+                            if v.get(k)
+                        ).strip()
+                        if line:
+                            vehicle_lines.append(line)
         except Exception as e:
             print(f"⚠️ Error building vehicle info: {e}")
 
@@ -664,4 +683,5 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
 
