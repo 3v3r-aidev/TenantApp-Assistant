@@ -478,9 +478,10 @@ def write_to_summary_template(
     output_path,
     summary_template_path="templates/App_Summary_Template.xlsx",
 ) -> None:
-    """
-    Writes one applicant’s key facts into App_Summary_Template.xlsx.
-    """
+    from openpyxl import load_workbook
+    from datetime import datetime
+    import traceback
+
     try:
         if isinstance(flat_data, dict):
             pass
@@ -513,25 +514,10 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Failed to update _Meta counter: {e}")
 
-        # ── Safe Rent/Income Parsing ─────────────────────────
+        # ── Gross & Net Ratio Calculation ──────────────
         try:
-            rent_val = flat_data.get("Monthly Rent", "")
-            rent_str = str(rent_val).replace("$", "").replace(",", "").strip() if rent_val else ""
-            rent = float(rent_str) if rent_str else 0
-        except Exception as e:
-            print(f"⚠️ Invalid rent value: {e}")
-            rent = 0
-
-        try:
-            gross_val = flat_data.get("Gross Monthly Income", "")
-            gross_str = str(gross_val).replace("$", "").replace(",", "").strip() if gross_val else ""
-            gross = float(gross_str) if gross_str else 0
-        except Exception as e:
-            print(f"⚠️ Invalid gross income value: {e}")
-            gross = 0
-
-        # ── Gross & Net Ratio Calculation (Updated) ──────────────
-        try:
+            rent = float(str(flat_data.get("Monthly Rent", "0")).replace("$", "").replace(",", "").strip() or 0)
+            gross = float(str(flat_data.get("Gross Monthly Income", "0")).replace("$", "").replace(",", "").strip() or 0)
             co_total = 0
             for app in flat_data.get("Co-applicants", []):
                 if isinstance(app, dict):
@@ -549,29 +535,22 @@ def write_to_summary_template(
             gross_ratio = ""
             net_ratio = ""
 
-        # ── Occupant Count Correction ─────────────────────────
+        # ── Total Occupants ─────────────────────────────
         try:
             co_applicants = flat_data.get("Co-applicants", [])
             occupants = flat_data.get("E. Occupant Information", [])
 
-            co_applicant_count = sum(
-                1 for c in co_applicants 
-                if isinstance(c, dict) and (c.get("Name") or c.get("FullName"))
-            )
-            occupant_count = sum(
-                1 for o in occupants 
-                if isinstance(o, dict) and (o.get("Name") or o.get("FullName"))
-            )
+            co_applicant_count = sum(1 for c in co_applicants if isinstance(c, dict) and (c.get("Name") or c.get("FullName")))
+            occupant_count = sum(1 for o in occupants if isinstance(o, dict) and (o.get("Name") or o.get("FullName")))
 
             total_occupants = 1 + co_applicant_count + occupant_count
         except Exception as e:
             print(f"⚠️ Failed to compute total occupants: {e}")
             total_occupants = flat_data.get("No of Occupants", "")
 
-        # ── Vehicle String Assembly ───────────────────────────
-        vehicle = ""
+        # ── Vehicle Info ───────────────────────────────
+        vehicle_lines = []
         try:
-            vehicle_lines = []
             if isinstance(flat_data.get("F. Vehicle Information:"), list):
                 for v in flat_data["F. Vehicle Information:"]:
                     if not isinstance(v, dict):
@@ -590,13 +569,45 @@ def write_to_summary_template(
                 v_models = str(flat_data.get("Vehicle Model", "")).split(",")
                 for t, y, mke, mdl in zip(v_types, v_years, v_makes, v_models):
                     line = f"{t.strip()} {y.strip()} {mke.strip()} {mdl.strip()}"
-                    if line:
-                        vehicle_lines.append(line)
-            vehicle = "\n".join(vehicle_lines)
+                    if line.strip():
+                        vehicle_lines.append(line.strip())
         except Exception as e:
-            print(f"⚠️ Error assembling vehicle info: {e}")
+            print(f"⚠️ Error building vehicle info: {e}")
 
-        # ── Animal String Assembly ───────────────────────────
+        # ── Employer Names ──────────────────────────────
+        employer_lines = set()
+        try:
+            primary = flat_data.get("Applicant's Current Employer", "")
+            if primary:
+                employer_lines.add(primary.strip())
+
+            for c in flat_data.get("Co-applicants", []):
+                if isinstance(c, dict):
+                    emp = c.get("Applicant's Current Employer", "")
+                    if emp:
+                        employer_lines.add(emp.strip())
+        except Exception as e:
+            print(f"⚠️ Error building employer info: {e}")
+
+        # ── Summary Rent ────────────────────────────────
+        try:
+            if flat_data.get("summary_rent"):
+                summary_rent = flat_data["summary_rent"]
+            else:
+                # fallback: if Co-applicants exist, use max rent among all
+                rent_values = [rent]
+                for c in flat_data.get("Co-applicants", []):
+                    if isinstance(c, dict):
+                        val = str(c.get("Monthly Rent", "")).replace("$", "").replace(",", "").strip()
+                        if val.replace(".", "", 1).isdigit():
+                            rent_values.append(float(val))
+                summary_rent = max(rent_values) if rent_values else ""
+            flat_data["summary_rent"] = summary_rent
+        except Exception as e:
+            print(f"⚠️ Failed to determine summary_rent: {e}")
+            summary_rent = ""
+
+        # ── Animals ─────────────────────────────────────
         animals = ""
         try:
             animal_lines = []
@@ -624,54 +635,7 @@ def write_to_summary_template(
         except Exception as e:
             print(f"⚠️ Error assembling animal info: {e}")
 
-        # ── Determine summary_rent ───────────────────────────
-        try:
-            rents = []
-            main_rent = flat_data.get("Current Rent", "")
-            if main_rent:
-                rents.append(main_rent)
-            for c in flat_data.get("Co-applicants", []):
-                if isinstance(c, dict):
-                    r = c.get("Current Rent", "")
-                    if r:
-                        rents.append(r)
-            numeric_rents = []
-            for r in rents:
-                try:
-                    r_clean = str(r).replace("$", "").replace(",", "").strip()
-                    if r_clean.replace(".", "", 1).isdigit():
-                        numeric_rents.append(float(r_clean))
-                except:
-                    continue
-            if len(numeric_rents) > 1:
-                summary_rent = max(numeric_rents)
-            elif len(numeric_rents) == 1:
-                summary_rent = numeric_rents[0]
-            else:
-                summary_rent = ""
-        except Exception as e:
-            print(f"⚠️ Failed to determine summary_rent: {e}")
-            summary_rent = ""
-
-        flat_data["summary_rent"] = summary_rent
-
-        # ── Employer Line Assembly ───────────────────────────
-        try:
-            employers = []
-            main_emp = flat_data.get("Applicant's Current Employer", "")
-            if main_emp:
-                employers.append(main_emp)
-            for c in flat_data.get("Co-applicants", []):
-                if isinstance(c, dict):
-                    co_emp = c.get("Applicant's Current Employer", "") or c.get("Employer", "")
-                    if co_emp:
-                        employers.append(co_emp)
-            employer_block = "\n".join(employers)
-        except Exception as e:
-            print(f"⚠️ Failed to assemble employers: {e}")
-            employer_block = flat_data.get("Applicant's Current Employer", "")
-
-        # ── Map to Summary Fields ────────────────────────────
+        # ── Write Fields ────────────────────────────────
         try:
             write_map = {
                 "B2": flat_data.get("Property Address", ""),
@@ -681,14 +645,12 @@ def write_to_summary_template(
                 "B6": f"{gross_ratio}/{net_ratio}",
                 "B7": str(total_occupants),
                 "B8": summary_rent,
-                "B9": employer_block,
-                "B12": vehicle,
+                "B9": "\n".join(employer_lines),
+                "B12": "\n".join(vehicle_lines),
                 "B13": animals,
             }
-
             for cell, value in write_map.items():
                 ws[cell] = value
-
         except Exception as e:
             print(f"❌ Error writing fields to worksheet: {e}")
             traceback.print_exc()
@@ -702,3 +664,4 @@ def write_to_summary_template(
         print("❌ write_to_summary_template failed:")
         traceback.print_exc()
         raise final_error
+
