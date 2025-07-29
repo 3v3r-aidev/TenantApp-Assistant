@@ -173,14 +173,19 @@ def write_flattened_to_template(
         except Exception as e:
             print(f"⚠️ Vehicle info error: {e}")
 
-        # Vehicle Payments
+        # Vehicle Payments (handles numeric and non-numeric strings)
         try:
-            v_payments = str(data.get("Vehicle Monthly Payment", "")).split(",")
+            v_raw = str(data.get("Vehicle Monthly Payment", "")).strip()
+            v_payments = v_raw.split(",")
             cleaned = [p.replace("$", "").replace(",", "").strip() for p in v_payments]
             numeric = [float(p) for p in cleaned if p.replace(".", "", 1).isdigit()]
-            ws["F35"] = sum(numeric) if len(numeric) > 1 else (numeric[0] if numeric else "")
+            if numeric:
+                ws["F35"] = sum(numeric) if len(numeric) > 1 else numeric[0]
+            else:
+                ws["F35"] = v_raw  # fallback: write original string if no numeric found
         except Exception as e:
             print(f"⚠️ Vehicle payment error: {e}")
+            ws["F35"] = str(data.get("Vehicle Monthly Payment", "")).strip()
 
         # Ratios
         try:
@@ -194,6 +199,7 @@ def write_flattened_to_template(
                         co_total += float(val)
                     except:
                         pass
+            
             net_total = gross + co_total
             ws["J3"] = f"{gross / rent:.2f}" if rent > 0 else ""
             ws["J4"] = f"{net_total / rent:.2f}" if rent > 0 else ""
@@ -420,6 +426,20 @@ def write_multiple_applicants_to_template(
             except Exception as e:
                 print(f"⚠️ Error calculating vehicle payment: {e}")
                 write(21, "")
+
+            try:
+                v_raw = str(row.get("Vehicle Monthly Payment", "")).strip()
+                v_payments = v_raw.split(",")
+                cleaned_vals = [p.replace("$", "").replace(",", "").strip() for p in v_payments if p.strip()]
+                numeric_vals = [float(p) for p in cleaned_vals if p.replace(".", "", 1).isdigit()]
+                if numeric_vals:
+                    total_payment = sum(numeric_vals) if len(numeric_vals) > 1 else numeric_vals[0]
+                    write(21, total_payment)
+                else:
+                    write(21, v_raw)  # fallback: original string if not numeric
+            except Exception as e:
+                    print(f"⚠️ Error calculating vehicle payment: {e}")
+                    write(21, str(row.get("Vehicle Monthly Payment", "")).strip())
 
         output = BytesIO()
         try:
