@@ -120,19 +120,34 @@ def write_flattened_to_template(
             ws["F18"] = data.get("DriverLicenseNumber", "")
             ws["F19"] = data.get("DOB", "")
             ws["F20"] = calc_age(data.get("DOB", ""))
-            
-            num_occupants = str(data.get("No of Occupants", ""))
-            ws["F21"] = str(num_occupants)  # Always write to F21
 
-            # Only write to G21 if there's a second applicant (i.e., if G14 is filled)
+            num_occupants = str(data.get("No of Occupants", ""))
+            ws["F21"] = str(num_occupants)
+
             second_applicant = str(ws["G14"].value or "").strip()
             if second_applicant:
-               ws["G21"] = num_occupants
+                ws["G21"] = num_occupants
 
             ws["F22"] = data.get("No of Children", "")
             ws["F23"] = data.get("Applicant's Current Address", "")
             ws["F24"] = data.get("Landlord or Property Manager's Name", "")
             ws["F25"] = data.get("Landlord Phone", "")
+
+            # Write to F26 (and G26 if second applicant) – multiline move details
+            info_of_address = "\n".join([
+                f"Move-in Date: {data.get('Move-in Date', '')}",
+                f"Move-out Date: {data.get('Move-out Date', '')}",
+                f"Current Rent: {data.get('Current Rent', '')}",
+                f"Reason for Move: {data.get('Reason for Move', '')}"
+            ]).strip()
+
+            ws["F26"] = info_of_address
+            ws["F26"].alignment = Alignment(wrap_text=True)
+
+            if second_applicant:
+                ws["G26"] = info_of_address
+                ws["G26"].alignment = Alignment(wrap_text=True)
+
             ws["F27"] = data.get("Applicant's Current Employer", "")
             ws["F28"] = data.get("Employer Address", "")
             ws["F29"] = f"{data.get('Employment Verification Contact', '')} {data.get('Employer Phone', '')}".strip()
@@ -201,7 +216,7 @@ def write_flattened_to_template(
         print("❌ Error in write_flattened_to_template:")
         traceback.print_exc()
         return None, None
-  
+
 # ───────────────────────────────────────────────────────────────────────────────
 # 2. write_multiple_applicants_to_template  (adds per-row type guard)
 # ───────────────────────────────────────────────────────────────────────────────
@@ -287,7 +302,7 @@ def write_multiple_applicants_to_template(
                 row = row_series.to_dict()
                 val = str(row.get("Gross Monthly Income", "")).replace("$", "").replace(",", "").strip()
                 try:
-                    if val and float(val) != gross:  # avoid double-counting main applicant
+                    if val and float(val) != gross:
                         co_total += float(val)
                 except:
                     continue
@@ -320,7 +335,7 @@ def write_multiple_applicants_to_template(
             print(f"⚠️ Failed to compute summary_rent: {e}")
             summary_rent = ""
 
-        first_row["summary_rent"] = summary_rent  # ✅ This will be passed to the summary writer
+        first_row["summary_rent"] = summary_rent
 
         # ── Fill applicant columns ──────────────────────────────────────
         col_starts = ["F", "I", "L", "O", "R", "U", "X", "AA", "AD", "AG"]
@@ -358,6 +373,19 @@ def write_multiple_applicants_to_template(
             write(9, row.get("Applicant's Current Address"))
             write(10, row.get("Landlord or Property Manager's Name"))
             write(11, row.get("Landlord Phone"))
+
+            # ── Write formatted move details to row 26 ─────────────────
+            info_of_address = "\n".join([
+                f"Move-in Date: {row.get('Move-in Date', '')}",
+                f"Move-out Date: {row.get('Move-out Date', '')}",
+                f"Current Rent: {row.get('Current Rent', '')}",
+                f"Reason for Move: {row.get('Reason for Move', '')}"
+            ]).strip()
+
+            move_cell = f"{col}{start_row + 12}"  # row 26
+            ws[move_cell] = info_of_address
+            ws[move_cell].alignment = openpyxl.styles.Alignment(wrap_text=True)
+
             write(13, row.get("Applicant's Current Employer"))
             write(14, row.get("Employer Address"))
             write(15, f"{row.get('Employment Verification Contact', '')} {row.get('Employer Phone', '')}".strip())
@@ -421,7 +449,6 @@ def write_multiple_applicants_to_template(
         print("❌ Error in write_multiple_applicants_to_template:")
         traceback.print_exc()
         return None, None
-
 
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. write_to_summary_template  (now type-safe)
