@@ -321,19 +321,17 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
         any_missing = True
         key_suffix = f"{idx}_{email.replace('@', '_').replace('.', '_') if email else f'no_email_{idx}'}"
 
-        if key_suffix in st.session_state["email_sent_ids"]:
-            st.success(f"✅ Email already sent to {full_name} ({email})")
-        else:
-            sent_success = render_email_ui(
-                email=email,
-                missing_fields=missing_fields,
-                full_name=full_name,
-                key_suffix=key_suffix,
-                email_user=EMAIL_USER,
-                email_pass=EMAIL_PASS
-            )
-            if sent_success:
-                st.session_state["email_sent_ids"].add(key_suffix)
+        sent_success = render_email_ui(
+            email=email,
+            missing_fields=missing_fields,
+            full_name=full_name,
+            key_suffix=key_suffix,
+            email_user=st.secrets["email"]["EMAIL_USER"],
+            email_pass=st.secrets["email"]["EMAIL_PASS"]
+        )
+
+        if sent_success:
+            st.session_state["email_sent_ids"].add(key_suffix)
 
     if not any_missing:
         st.success("✅ All applicants have complete required fields.")
