@@ -21,7 +21,7 @@ def render_email_ui(
         return
 
     if not email or "@" not in email:
-        st.error(""❌ Missing applicant email. Ask applicant to re-submit with their email.")
+        st.error("❌ Missing applicant email. Ask applicant to re-submit with their email.")
         return
 
     # ----- Unique keys -----
