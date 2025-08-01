@@ -279,8 +279,6 @@ if st.button("Save Extracted Data"):
         except Exception as e:
             st.error(f"❌ Failed to save extracted records: {e}")
 
-import pandas as pd
-
 # --- Validation Helper
 def is_missing(value):
     try:
@@ -290,9 +288,9 @@ def is_missing(value):
     except Exception:
         return True
 
-# --- Ensure credentials are defined
-EMAIL_USER = st.secrets.get("EMAIL_USER") or os.getenv("EMAIL_USER")
-EMAIL_PASS = st.secrets.get("EMAIL_PASS") or os.getenv("EMAIL_PASS")
+# --- Ensure credentials are defined (from st.secrets only)
+EMAIL_USER = st.secrets.get["email"]["EMAIL_USER"]
+EMAIL_PASS = st.secrets.get["email"]["EMAIL_PASS"]
 
 # === Validation + Email Phase ===
 if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
