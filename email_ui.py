@@ -6,8 +6,7 @@ import traceback
 
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
     if not email:
-        st.error("❌ No valid email address available.")
-        return False
+        st.warning("⚠️ No email was detected. You may enter it manually below.")
 
     if not email_user or not email_pass:
         st.error("❌ Missing email credentials.")
@@ -23,7 +22,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
         st.success(f"✅ Email already sent to {full_name} at {email}")
         return False
 
-    with st.expander(f"Review & Send Email to {email}", expanded=True):
+    with st.expander(f"Review & Send Email to {email or '[No Email]'}", expanded=True):
         with st.form(f"email_form_{key_suffix}"):
             default_subject = "Missing Information in Your Application"
             default_body = (
@@ -35,7 +34,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
             )
 
             applicant_name = st.text_input("Applicant Name", value=full_name, key=f"input_name_{key_suffix}")
-            to_email = st.text_input("Recipient Email", value=email, key=f"input_email_{key_suffix}")
+            to_email = st.text_input("Recipient Email", value=email or "", key=f"input_email_{key_suffix}")
             subject = st.text_input("Subject", value=default_subject, key=f"subject_{key_suffix}")
             body = st.text_area("Email Body", value=default_body, height=200, key=f"body_{key_suffix}")
 
