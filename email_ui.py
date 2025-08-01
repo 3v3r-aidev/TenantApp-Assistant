@@ -9,14 +9,15 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
         st.error("❌ Missing email credentials.")
         return False
 
-    # Keys for session storage
+    # --- Session keys
     name_key = f"name_{key_suffix}"
     email_key = f"email_{key_suffix}"
     subject_key = f"subject_{key_suffix}"
     body_key = f"body_{key_suffix}"
-    sent_flag_key = f"sent_success_{key_suffix}"
+    sent_flag_key = f"sent_{key_suffix}"
+    send_trigger_key = f"trigger_send_{key_suffix}"
 
-    # Initialize session state if not set
+    # --- Initialize session values (only once)
     if name_key not in st.session_state:
         st.session_state[name_key] = full_name
     if email_key not in st.session_state:
@@ -32,17 +33,18 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
             f"Thank you,\nEvercrest Homes Property Management Team"
         )
 
-    with st.expander(f"📤 Review & Send Email to {email or '[No Email]'}", expanded=True):
-        with st.form(f"email_form_{key_suffix}"):
+    # --- Always show the form
+    with st.expander(f"📧 Review & Send Email to {email or '[No Email]'}", expanded=True):
+        with st.form(f"form_{key_suffix}"):
             st.session_state[name_key] = st.text_input("Applicant Name", value=st.session_state[name_key], key=f"input_name_{key_suffix}")
             st.session_state[email_key] = st.text_input("Recipient Email", value=st.session_state[email_key], key=f"input_email_{key_suffix}")
             st.session_state[subject_key] = st.text_input("Subject", value=st.session_state[subject_key], key=f"input_subject_{key_suffix}")
             st.session_state[body_key] = st.text_area("Email Body", value=st.session_state[body_key], height=200, key=f"input_body_{key_suffix}")
+            if st.form_submit_button("Send Email"):
+                st.session_state[send_trigger_key] = True  # set flag to trigger send on next rerun
 
-            send_clicked = st.form_submit_button("Send Email")
-
-    # After form submission, send email using session values
-    if send_clicked:
+    # --- Trigger email send (outside form, survives rerun)
+    if st.session_state.get(send_trigger_key):
         try:
             message = MIMEMultipart()
             message["From"] = email_user
@@ -59,8 +61,9 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
                     message.as_string()
                 )
 
+            st.success(f"✅ Email sent to {st.session_state[email_key]}")
             st.session_state[sent_flag_key] = True
-            st.success(f"✅ Email successfully sent to {st.session_state[email_key]}")
+            st.session_state[send_trigger_key] = False  # reset trigger
             return True
 
         except smtplib.SMTPAuthenticationError:
@@ -68,11 +71,11 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
         except Exception as e:
             st.error("❌ Failed to send email.")
             st.code(traceback.format_exc())
+        st.session_state[send_trigger_key] = False  # reset on error
         return False
 
-    # Optional message if already sent
+    # --- Show if already sent
     if st.session_state.get(sent_flag_key):
-        st.info(f"✅ Email already sent to {st.session_state[email_key]}")
-        return True
+        st.info(f"📨 Email already sent to {st.session_state[email_key]}")
 
     return False
