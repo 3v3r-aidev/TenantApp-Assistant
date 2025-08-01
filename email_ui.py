@@ -7,25 +7,21 @@ import traceback
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
     if not email:
         st.error("❌ No valid email address available.")
-        return None, None
+        return False
 
     if not email_user or not email_pass:
-        st.error("❌ Missing email credentials. Please check your `email_user` and `email_pass`.")
-        return None, None
+        st.error("❌ Missing email credentials.")
+        return False
 
     sent_flag_key = f"email_sent_success_{key_suffix}"
     resend_key = f"resend_flag_{key_suffix}"
 
-    st.write(f"🔒 Email sender: `{email_user}`")  # for debug
-    st.write(f"📬 Email recipient: `{email}`")     # for debug
-
-    # Add resend checkbox
     force_resend = st.checkbox("Force resend email", key=resend_key)
 
     if st.session_state.get(sent_flag_key) and not force_resend:
         st.info(f"Missing Info: {', '.join(missing_fields)}")
         st.success(f"✅ Email already sent to {full_name} at {email}")
-        return full_name, email
+        return False
 
     with st.expander(f"Review & Send Email to {email}", expanded=True):
         with st.form(f"email_form_{key_suffix}"):
@@ -60,11 +56,12 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
 
                     st.success(f"📨 Email successfully sent to {to_email}")
                     st.session_state[sent_flag_key] = True
+                    return True
 
                 except smtplib.SMTPAuthenticationError:
-                    st.error("❌ SMTP Authentication failed. Check your IONOS credentials.")
+                    st.error("❌ SMTP Authentication failed. Check your credentials.")
                 except Exception as e:
                     st.error(f"❌ Failed to send email to {to_email}")
                     st.code(traceback.format_exc())
 
-        return applicant_name, to_email
+    return False
