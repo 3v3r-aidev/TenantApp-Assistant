@@ -17,12 +17,6 @@ import smtplib
 st.set_page_config(page_title="Tenant App Dashboard", layout="wide")
 os.makedirs("temp", exist_ok=True)
 
-import streamlit as st
-
-# ── Optional: Other imports
-import pandas as pd
-from datetime import datetime
-
 # ── Insert CSS to hide toolbar elements
 custom_css = """
     <style>
@@ -264,72 +258,85 @@ if uploaded_pdfs:
 
         st.success("✅ All applications extracted.")
 
-    import streamlit as st
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import smtplib
-import traceback
+if st.button("Save Extracted Data"):
+    saved_records = []
+    for filename, data in st.session_state.get("batch_extracted", {}).items():
+        try:
+            parsed = parse_gpt_output(data)
+            normalized = normalize_all_dates(parsed)
+            flat = flatten_extracted_data(normalized)
+            saved_records.append(flat)
+        except Exception as e:
+            st.warning(f"{filename}: Failed to parse – {e}")
 
-def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
-    if not email_user or not email_pass:
-        st.error("❌ Email credentials missing in secrets.")
-        return False
+    if saved_records:
+        try:
+            df = pd.DataFrame(saved_records)
+            df.to_excel(EXTRACTED_DATA_PATH, index=False)
+            st.success("✅ All extracted records saved.")
+            st.session_state["trigger_validation"] = True
+            st.session_state["email_validation_done"] = False  # Reset so validation runs
+        except Exception as e:
+            st.error(f"❌ Failed to save extracted records: {e}")
 
-    sent_flag_key = f"email_sent_success_{key_suffix}"
-    if st.session_state.get(sent_flag_key):
-        st.success(f"✅ Email already sent to {full_name}")
+# Helper
+def is_missing(value):
+    try:
+        if pd.isna(value):
+            return True
+        return str(value).strip().lower() in {"", "n/a", "-", "none", "null", "nan"}
+    except Exception:
         return True
 
-    with st.expander(f"{full_name} – Missing Fields", expanded=True):
-        with st.form(f"form_email_{key_suffix}"):
-            default_subject = "Missing Information in Your Application"
-            default_body = (
-                f"Dear {full_name},\n\n"
-                f"We reviewed your rental application and noticed the following missing information:\n\n"
-                f"{', '.join(missing_fields)}\n\n"
-                f"Please provide the missing details at your earliest convenience.\n\n"
-                f"Thank you,\nEvercrest Homes Property Management Team"
+# === Validation + Email Phase ===
+if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
+    st.caption("Validating Missing Info + Sending Emails...")
+
+    try:
+        df_check = pd.read_excel(EXTRACTED_DATA_PATH)
+    except Exception as e:
+        st.error(f"❌ Failed to load extracted data: {e}")
+        st.stop()
+
+    st.session_state["email_sent_ids"] = st.session_state.get("email_sent_ids", set())
+
+    any_missing = False
+    for idx, row in df_check.iterrows():
+        email = str(row.get("Email", "") or "").strip()
+        full_name = str(row.get("FullName", "") or "Applicant").strip()
+
+        required_fields = {
+            "Full Name": row.get("FullName", ""),
+            "Phone Number": row.get("PhoneNumber", ""),
+            "SSN": row.get("SSN", ""),
+            "DOB": row.get("DOB", ""),
+            "Current Employer": row.get("Applicant's Current Employer", "")
+        }
+
+        missing_fields = [field for field, val in required_fields.items() if is_missing(val)]
+        if not missing_fields:
+            continue
+
+        any_missing = True
+        key_suffix = f"{idx}_{email.replace('@', '_').replace('.', '_') if email else f'no_email_{idx}'}"
+
+        if key_suffix in st.session_state["email_sent_ids"]:
+            st.success(f"✅ Email already sent to {full_name} ({email})")
+        else:
+            sent = render_email_ui(
+                email=email,
+                missing_fields=missing_fields,
+                full_name=full_name,
+                key_suffix=key_suffix,
+                email_user=EMAIL_USER,
+                email_pass=EMAIL_PASS
             )
+            if sent:
+                st.session_state["email_sent_ids"].add(key_suffix)
 
-            # Editable fields
-            applicant_name = st.text_input("Applicant Name", value=full_name, key=f"name_{key_suffix}")
-            to_email = st.text_input("Recipient Email", value=email, key=f"email_{key_suffix}")
-            subject = st.text_input("Subject", value=default_subject, key=f"subject_{key_suffix}")
-            body = st.text_area("Email Body", value=default_body, height=200, key=f"body_{key_suffix}")
+    if not any_missing:
+        st.success("✅ All applicants have complete required fields.")
+        st.session_state["trigger_validation"] = False
 
-            submitted = st.form_submit_button("Send Email")  # ✅ This survives rerun and works
-
-            if submitted:
-                if not to_email or "@" not in to_email:
-                    st.error("❌ Invalid recipient email.")
-                    return False
-                if not subject.strip() or not body.strip():
-                    st.error("❌ Subject and body are required.")
-                    return False
-
-                try:
-                    message = MIMEMultipart()
-                    message["From"] = email_user
-                    message["To"] = to_email
-                    message["Subject"] = subject
-                    message.attach(MIMEText(body, "plain"))
-
-                    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                        server.starttls()
-                        server.login(email_user, email_pass)
-                        server.sendmail(email_user, to_email, message.as_string())
-
-                    st.success(f"📧 Email sent successfully to {to_email}")
-                    st.session_state[sent_flag_key] = True
-                    return True
-
-                except smtplib.SMTPAuthenticationError:
-                    st.error("❌ SMTP Authentication failed. Check your Gmail app password.")
-                except smtplib.SMTPException as smtp_err:
-                    st.error("❌ SMTP error occurred.")
-                    st.code(str(smtp_err))
-                except Exception:
-                    st.error("❌ Unexpected error occurred.")
-                    st.code(traceback.format_exc())
-
-    return False
+    st.session_state["email_validation_done"] = True
+    st.stop()
