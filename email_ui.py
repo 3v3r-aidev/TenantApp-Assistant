@@ -1,3 +1,11 @@
+import streamlit as st
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
+import traceback
+import sys
+import os
+
 def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="", email_user=None, email_pass=None):
     if not email:
         st.error("❌ No valid email address available.")
