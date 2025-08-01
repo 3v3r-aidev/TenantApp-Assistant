@@ -288,10 +288,6 @@ def is_missing(value):
     except Exception:
         return True
 
-# --- Ensure credentials are defined (from st.secrets only)
-EMAIL_USER = st.secrets.get["email"]["EMAIL_USER"]
-EMAIL_PASS = st.secrets.get["email"]["EMAIL_PASS"]
-
 # === Validation + Email Phase ===
 if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
     st.caption("🔍 Validating Missing Info + Sending Emails...")
