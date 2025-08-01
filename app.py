@@ -275,11 +275,11 @@ if st.button("Save Extracted Data"):
             df.to_excel(EXTRACTED_DATA_PATH, index=False)
             st.success("✅ All extracted records saved.")
             st.session_state["trigger_validation"] = True
-            st.session_state["email_validation_done"] = False  # Reset so validation runs
+            st.session_state["email_validation_done"] = False
         except Exception as e:
             st.error(f"❌ Failed to save extracted records: {e}")
 
-# Helper
+# --- Validation Helper
 def is_missing(value):
     try:
         if pd.isna(value):
