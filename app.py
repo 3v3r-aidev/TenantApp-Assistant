@@ -279,6 +279,8 @@ if st.button("Save Extracted Data"):
         except Exception as e:
             st.error(f"❌ Failed to save extracted records: {e}")
 
+import pandas as pd
+
 # --- Validation Helper
 def is_missing(value):
     try:
@@ -288,9 +290,13 @@ def is_missing(value):
     except Exception:
         return True
 
+# --- Ensure credentials are defined
+EMAIL_USER = st.secrets.get("EMAIL_USER") or os.getenv("EMAIL_USER")
+EMAIL_PASS = st.secrets.get("EMAIL_PASS") or os.getenv("EMAIL_PASS")
+
 # === Validation + Email Phase ===
 if st.session_state.get("trigger_validation", False) and not st.session_state.get("email_validation_done", False):
-    st.caption("Validating Missing Info + Sending Emails...")
+    st.caption("🔍 Validating Missing Info + Sending Emails...")
 
     try:
         df_check = pd.read_excel(EXTRACTED_DATA_PATH)
@@ -298,7 +304,8 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
         st.error(f"❌ Failed to load extracted data: {e}")
         st.stop()
 
-    st.session_state["email_sent_ids"] = st.session_state.get("email_sent_ids", set())
+    if "email_sent_ids" not in st.session_state:
+        st.session_state["email_sent_ids"] = set()
 
     any_missing = False
     for idx, row in df_check.iterrows():
@@ -323,7 +330,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
         if key_suffix in st.session_state["email_sent_ids"]:
             st.success(f"✅ Email already sent to {full_name} ({email})")
         else:
-            sent = render_email_ui(
+            sent_success = render_email_ui(
                 email=email,
                 missing_fields=missing_fields,
                 full_name=full_name,
@@ -331,7 +338,7 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
                 email_user=EMAIL_USER,
                 email_pass=EMAIL_PASS
             )
-            if sent:
+            if sent_success:
                 st.session_state["email_sent_ids"].add(key_suffix)
 
     if not any_missing:
@@ -340,3 +347,4 @@ if st.session_state.get("trigger_validation", False) and not st.session_state.ge
 
     st.session_state["email_validation_done"] = True
     st.stop()
+
