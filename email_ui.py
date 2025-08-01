@@ -9,15 +9,26 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
         st.error("❌ No valid email address available.")
         return None, None
 
-    sent_flag_key = f"email_sent_success_{key_suffix}"
+    if not email_user or not email_pass:
+        st.error("❌ Missing email credentials. Please check your `email_user` and `email_pass`.")
+        return None, None
 
-    if st.session_state.get(sent_flag_key):
+    sent_flag_key = f"email_sent_success_{key_suffix}"
+    resend_key = f"resend_flag_{key_suffix}"
+
+    st.write(f"🔒 Email sender: `{email_user}`")  # for debug
+    st.write(f"📬 Email recipient: `{email}`")     # for debug
+
+    # Add resend checkbox
+    force_resend = st.checkbox("Force resend email", key=resend_key)
+
+    if st.session_state.get(sent_flag_key) and not force_resend:
         st.info(f"Missing Info: {', '.join(missing_fields)}")
         st.success(f"✅ Email already sent to {full_name} at {email}")
         return full_name, email
 
     with st.expander(f"Review & Send Email to {email}", expanded=True):
-        with st.form(f"email_form_{key_suffix}"):  # ✅ Use form to preserve state across reruns
+        with st.form(f"email_form_{key_suffix}"):
             default_subject = "Missing Information in Your Application"
             default_body = (
                 f"Dear {full_name},\n\n"
@@ -32,7 +43,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
             subject = st.text_input("Subject", value=default_subject, key=f"subject_{key_suffix}")
             body = st.text_area("Email Body", value=default_body, height=200, key=f"body_{key_suffix}")
 
-            send_clicked = st.form_submit_button("Send Email")  # ✅ form-safe button
+            send_clicked = st.form_submit_button("Send Email")
 
             if send_clicked:
                 try:
