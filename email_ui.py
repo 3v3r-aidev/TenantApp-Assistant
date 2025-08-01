@@ -39,7 +39,7 @@ def render_email_ui(email, missing_fields, full_name="Applicant", key_suffix="",
             body = st.text_area("Email Body", value=default_body, height=200, key=f"body_{key_suffix}")
 
             send_clicked = st.form_submit_button("Send Email")
-            st.write("send_clicked:", send_clicked)  # Optional debug line
+            
 
             if send_clicked:
                 try:
